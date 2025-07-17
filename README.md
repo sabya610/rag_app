@@ -4,7 +4,7 @@ This is a Retrieval-Augmented Generation (RAG) application that uses `llama.cpp`
 
 ## 📦 Project Structure
 
-- `app/` — Flask backend code
+- `rag_app/` — Flask backend code
 - `k8s/` — Raw Kubernetes YAMLs
 - `helm/rag-qa-chart/` — Production-ready Helm chart
 - `Dockerfile` — Containerize the app
