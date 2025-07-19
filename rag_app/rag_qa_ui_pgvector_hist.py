@@ -17,6 +17,7 @@ from sentence_transformers import SentenceTransformer
 from functools import lru_cache
 from llama_cpp import Llama
 
+
 import re
 import os
 import numpy as np
@@ -49,8 +50,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{DB_USER}:{DB_PASS}@{DB_H
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
-# pgvector extension support
-from pgvector.sqlalchemy import Vector
 
 class KBChunk(db.Model):
     __tablename__ = "kb_chunks"
