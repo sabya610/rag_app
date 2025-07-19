@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-env
+data:
+  .env: |
+    POSTGRES_HOST={{ .Values.env.POSTGRES_HOST }}
+    POSTGRES_DB={{ .Values.env.POSTGRES_DB }}
+    POSTGRES_USER={{ .Values.env.POSTGRES_USER }}
+    POSTGRES_DB={{ .Value.env.POSTGRES_DB }}
+
+
