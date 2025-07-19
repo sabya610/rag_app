@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rag-app
+description: A minimal Helm chart for Flask-based RAG app using llama.cpp and pgvector
+type: application
+version: 0.1.0
+appVersion: "1.0"
