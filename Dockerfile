@@ -29,10 +29,13 @@ ENV FLASK_APP=rag_app/rag_qa_ui_pgvector_hist.py
 ENV TRANSFORMERS_OFFLINE=1
 
 # Create model directories and download embedding model
-RUN mkdir -p /models/embedding && \
-    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2').save('/models/embedding')"
+#RUN mkdir -p /models/embedding && \
+#    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2').save('/models/embedding')"
 
-# Copy LLaMA model
+# Copy LLaMA model and embeddings
+
+COPY models/embedding/all-MiniLM-L6-v2 /app/models/embedding/all-MiniLM-L6-v2
+
 COPY models/llama-2-7b-chat.Q4_K_M.gguf /models/llama-2-7b-chat.Q4_K_M.gguf
 
 # Copy PDF files (optional)

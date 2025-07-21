@@ -1,0 +1,7 @@
+# Enforce Unix-style LF endings for all text files
+* text=auto eol=lf
+
+# Optional: exclude binaries or specific files
+*.png binary
+*.jpg binary
+*.pdf binary

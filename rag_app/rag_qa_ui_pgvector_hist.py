@@ -32,6 +32,10 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 PDF_FOLDER = "/pdf_kb_files"
 MODEL_PATH = "/models/llama-2-7b-chat.Q4_K_M.gguf"
 EMBEDDING_MODEL = "/models/embedding/all-MiniLM-L6-v2"
+PDF_FOLDER = "/app/pdf_kb_files"
+MODEL_PATH = "/app/models/llama-2-7b-chat.Q4_K_M.gguf"
+#EMBEDDING_MODEL = "/app/models/embedding/all-MiniLM-L6-v2"
+EMBEDDING_MODEL = "/app/models/embedding/all-MiniLM-L6-v2"
 PGVECTOR_DIM = 384
 MAX_RESULTS = 3
 
