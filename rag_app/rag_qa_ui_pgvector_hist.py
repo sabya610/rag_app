@@ -24,8 +24,8 @@ from dotenv import load_dotenv
 
 
 # Configuration
-PDF_FOLDER = "C:\\Users\\sohini\\ere_kb_tool\\pdf_kb_files"
-MODEL_PATH = "C:\\llama_chatbot\\models\\llama-2-7b-chat.Q4_K_M.gguf"
+PDF_FOLDER = "\ere_kb_tool\pdf_kb_files"
+MODEL_PATH = "\models\llama-2-7b-chat.Q4_K_M.gguf"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 PGVECTOR_DIM = 384
 MAX_RESULTS = 3
@@ -45,9 +45,11 @@ DB_NAME = os.getenv("DB_NAME")
 # Flask and DB setup
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-#app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://username:password@localhost:5432/ragdb"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+print(f"Connecting to DB at postgresql://{DB_USER}:<hidden>@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 db = SQLAlchemy(app)
+print(f"Connecting to DB at postgresql://{DB_USER}:<hidden>@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+
 
 # pgvector extension support
 from pgvector.sqlalchemy import Vector
