@@ -23,9 +23,13 @@ COPY . /app
 # Install Python dependencies
 RUN pip install --upgrade pip
 
-
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV TRANSFORMERS_OFFLINE=1
+
+# Incorporate model into the image
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2').save('/rag-app/models/embedding')"
+
 
 # Expose Flask port
 EXPOSE 5000
