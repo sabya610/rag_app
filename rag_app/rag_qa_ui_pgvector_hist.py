@@ -25,9 +25,13 @@ from dotenv import load_dotenv
 
 
 # Configuration
+
 PDF_FOLDER = "\ere_kb_tool\pdf_kb_files"
 MODEL_PATH = "\models\llama-2-7b-chat.Q4_K_M.gguf"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+PDF_FOLDER = "/pdf_kb_files"
+MODEL_PATH = "/models/llama-2-7b-chat.Q4_K_M.gguf"
+EMBEDDING_MODEL = "/models/embedding/all-MiniLM-L6-v2"
 PGVECTOR_DIM = 384
 MAX_RESULTS = 3
 
@@ -159,23 +163,34 @@ def generate_answer(context_chunks, question, llama):
     return output["choices"][0]["text"].strip()
 
 # Load llama model and embedder once
-print("[LOADING...] Loading embedder and llama.cpp model")
-embedder = SentenceTransformer(EMBEDDING_MODEL)
-llama = Llama(
-    model_path=MODEL_PATH,
-    n_ctx=4096,
-    temperature=0.7,
-    top_p=0.9,
-    repeat_penalty=1.1,
-    verbose=False,
-    use_mlock=True,
-    use_mmap=True
+try:
+   print("[LOADING...] Loading embedder and llama.cpp model")
+   embedder = SentenceTransformer(EMBEDDING_MODEL)
+   print("[OK] Embedder loaded.")
+except Exception as e:
+   print(f"[ERROR] failed to load embedder: {e}")
+   
+try:
+   llama = Llama(
+      model_path=MODEL_PATH,
+      n_ctx=4096,
+      temperature=0.7,
+      top_p=0.9,
+      repeat_penalty=1.1,
+      verbose=False,
+      use_mlock=True,
+      use_mmap=True,
 
-)
+    )
+   print("[OK] LLaMA loaded.")
+except Exception as e:
+   print(f"[ERROR] loading llama model: {e}")
 
+
+# Response formatting
 def clean_response(text):
     # Remove markdown-style formatting
-    text = re.sub(r'[`*#_~]', '', text)
+    text = re.sub(r'[*#_~]', '', text)
     return text.strip()
 
 # Load docs into pgvector if db is empty
