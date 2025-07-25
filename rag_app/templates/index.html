@@ -53,19 +53,19 @@
             <button type="submit">Submit</button>
         </form>
 
-        <div id="loading" style="display:none;">⏳ Thinking...</div>
+        <div id="loading" style="display:none;"> Thinking...</div>
 
         {% if answer %}
             <div class="answer">
-                <h3>💡 Response:</h3>
+                <h3> Response:</h3>
                 <pre style="white-space: pre-wrap;">{{ answer }}</pre>
             </div>
         {% endif %}
 
         <div class="section-divider">
-            <h2>📤 Upload New PDF</h2>
+            <h2> Upload New PDF </h2>
             <form method="post" action="/upload" enctype="multipart/form-data">
-                <input type="file" name="pdf_file" accept="application/pdf" required>
+                <input type="file" name="pdf" accept="application/pdf" required>
                 <button type="submit">Upload PDF</button>
             </form>
         </div>
