@@ -1,10 +1,15 @@
-#Install Postgresql for pgvector connector to store embeddings
-#pip install flask flask_sqlalchemy
-#pip install psycopg2-binary sqlalchemy pgvector
-#pip install flask_sqlalchemy
-#pip install python-dotenv
-#Gunicorn with worker limits avoids Flask dev server overhead:
-#gunicorn -w 2 -b 127.0.0.1:5000 app:app
+"""
+Flask-based Retrieval-Augmented Generation (RAG) application that uses:
+
+PostgreSQL with pgvector to store and search embeddings,
+
+sentence-transformers to generate embeddings,
+
+llama.cpp to generate answers using a local LLM,
+
+and a basic HTML frontend for input/output and QA history.
+
+"""
 
 import argparse
 from urllib.parse import quote_plus
@@ -144,13 +149,27 @@ def retrieve_relevant_chunks_pg(query, embedder, top_k=3):
 def generate_answer(context_chunks, question, llama):
     context = "\n".join(context_chunks)
     prompt = f"""
-### Context:
+You are a technical assistant helping engineers troubleshoot HPE Ezmeral issues.
+
+You are answering a question from a support engineer based on internal HPE documents.
+
+The following context is from those documents:
+
 {context}
 
-### Question:
-    {question}
+Question: {question}
 
-### Answer:"""
+Instructions:
+- Provide a step-by-step guide based on facts from the PDF.
+- Include exact CLI commands where applicable.
+- Mention what condition to check and what output to expect.
+- If multiple scenarios exist, break them into numbered steps with subpoints.
+- End with: "Let me know if you'd like logs or checks for a specific step."
+
+If the answer is long, start with a summary and break details into steps.
+
+Answer:
+"""
 
     output = llama(prompt=prompt, max_tokens=256, stop=["###"])
     #print(f"The prompt is {prompt}")
