@@ -71,9 +71,12 @@
         </div>
 
         <script>
-            document.querySelector('form').addEventListener('submit', function () {
-                document.getElementById('loading').style.display = 'block';
-            });
+            const allForms = document.querySelectorAll('form');
+            allForms.forEach(form => {
+                 form.addEventListener('submit', function () {
+                      document.getElementById('loading').style.display = 'block';
+                  });
+             })
         </script>
     </div>
 </body>
