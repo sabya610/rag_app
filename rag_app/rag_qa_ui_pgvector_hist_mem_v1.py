@@ -34,7 +34,7 @@ PDF_FOLDER = "/app/pdf_kb_files"
 MODEL_PATH = "/app/models/llama-2-7b-chat.Q4_K_M.gguf"
 EMBEDDING_MODEL = "/app/models/embedding/all-MiniLM-L6-v2"
 PGVECTOR_DIM = 384
-MAX_RESULTS = 3
+MAX_RESULTS = 5
 ALLOWED_EXTENSIONS = {'pdf'}
 
 # Read from .env File (Place at project root)
@@ -167,6 +167,10 @@ def retrieve_relevant_chunks_pg(query, embedder, top_k=3):
 
 def generate_answer(context_chunks, question, llama):
     context = "\n".join(context_chunks)
+    print("Question:", question)
+    print("Context retrieved:")
+    for chunk in top_chunks:
+       print(chunk)
     prompt = f"""
 You are a senior technical assistant specializing in Kubernetes and HPE Ezmeral Container Platform.
 
