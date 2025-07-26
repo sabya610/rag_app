@@ -181,17 +181,16 @@ Question:
 
 Instructions:
 - Use only verified information from the internal HPE PDF documents.
+- Use ONLY facts from the context. If not covered, reply: "Not covered in documentation."
 - Include terminal commands in code blocks (```)
+- Avoid hallucination.
+- Format output using headers (###), lists, and code blocks (```bash ... ```)
 - Highlight critical instructions with bold or bullet points.
-- Do NOT hallucinate if the document does not cover the query — respond with "Not covered in documentation".
 - Provide a clear, step-by-step guide tailored to the Ezmeral Runtime environment.
-- If the query is about certificate renewal or expiration, include commands like `kubeadm certs renew all`, `openssl x509 -noout -enddate`, and how to update the ECP config.
-- Always mention critical post-renewal actions like restarting static pods, replacing `.kube/config`, and checking ECP UI integration.
-- If any special commands like `bdconfig --getk8sc` or Erlang console updates are needed, include them.
 - Use proper CLI formatting and avoid generic advice.
 """
 
-    output = llama(prompt=prompt, max_tokens=256, stop=["###"])
+    output = llama(prompt=prompt, max_tokens=1024, stop=["###"])
     #print(f"The prompt is {prompt}")
     #print(f"COntext is {context}")
     return output["choices"][0]["text"].strip()
