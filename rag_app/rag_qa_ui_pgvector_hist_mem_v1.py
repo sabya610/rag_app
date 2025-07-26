@@ -10,7 +10,6 @@ llama.cpp to generate answers using a local LLM,
 and a basic HTML frontend for input/output and QA history.
 
 """
-
 import argparse
 from urllib.parse import quote_plus
 from sqlalchemy import cast
@@ -21,9 +20,9 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import VARCHAR
 from sentence_transformers import SentenceTransformer
 from functools import lru_cache
+from werkzeug.utils import secure_filename
 from llama_cpp import Llama
-
-
+import PyPDF2
 import re
 import os
 import numpy as np
@@ -33,10 +32,10 @@ from dotenv import load_dotenv
 # Configuration
 PDF_FOLDER = "/app/pdf_kb_files"
 MODEL_PATH = "/app/models/llama-2-7b-chat.Q4_K_M.gguf"
-#EMBEDDING_MODEL = "/app/models/embedding/all-MiniLM-L6-v2"
 EMBEDDING_MODEL = "/app/models/embedding/all-MiniLM-L6-v2"
 PGVECTOR_DIM = 384
 MAX_RESULTS = 3
+ALLOWED_EXTENSIONS = {'pdf'}
 
 # Read from .env File (Place at project root)
 load_dotenv()
@@ -74,7 +73,7 @@ with app.app_context():
 
 # Utility functions
 def extract_text_from_pdfs(pdf_folder):
-    import PyPDF2
+
     text_chunks = []
     for filename in os.listdir(pdf_folder):
         if filename.endswith(".pdf"):
@@ -95,6 +94,26 @@ def extract_text_from_pdfs(pdf_folder):
                                 paragraph += line + "\n"
                         if paragraph:
                             text_chunks.append(paragraph.strip())
+    return [chunk for chunk in text_chunks if len(chunk) > 40]
+
+def extract_text_from_pdfs_single(filepath):
+    text_chunks = []
+    with open(filepath, "rb") as f:
+        reader = PyPDF2.PdfReader(f)
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                lines = text.split('\n')
+                paragraph = ""
+                for line in lines:
+                    if line.strip() == "":
+                        if paragraph:
+                            text_chunks.append(paragraph.strip())
+                            paragraph = ""
+                    else:
+                        paragraph += line + "\n"
+                if paragraph:
+                    text_chunks.append(paragraph.strip())
     return [chunk for chunk in text_chunks if len(chunk) > 40]
 
 def split_text(text, chunk_size=500):
@@ -149,26 +168,27 @@ def retrieve_relevant_chunks_pg(query, embedder, top_k=3):
 def generate_answer(context_chunks, question, llama):
     context = "\n".join(context_chunks)
     prompt = f"""
-You are a technical assistant helping engineers troubleshoot HPE Ezmeral issues.
+You are a senior technical assistant specializing in Kubernetes and HPE Ezmeral Container Platform.
 
-You are answering a question from a support engineer based on internal HPE documents.
+You are answering a troubleshooting or operations question from a platform administrator. 
+Your answers are based on internal HPE technical documentation from support PDFs.
 
-The following context is from those documents:
-
+Context:
 {context}
 
-Question: {question}
+Question:
+{question}
 
 Instructions:
-- Provide a step-by-step guide based on facts from the PDF.
-- Include exact CLI commands where applicable.
-- Mention what condition to check and what output to expect.
-- If multiple scenarios exist, break them into numbered steps with subpoints.
-- End with: "Let me know if you'd like logs or checks for a specific step."
-
-If the answer is long, start with a summary and break details into steps.
-
-Answer:
+- Use only verified information from the internal HPE PDF documents.
+- Include terminal commands in code blocks (```)
+- Highlight critical instructions with bold or bullet points.
+- Do NOT hallucinate if the document does not cover the query — respond with "Not covered in documentation".
+- Provide a clear, step-by-step guide tailored to the Ezmeral Runtime environment.
+- If the query is about certificate renewal or expiration, include commands like `kubeadm certs renew all`, `openssl x509 -noout -enddate`, and how to update the ECP config.
+- Always mention critical post-renewal actions like restarting static pods, replacing `.kube/config`, and checking ECP UI integration.
+- If any special commands like `bdconfig --getk8sc` or Erlang console updates are needed, include them.
+- Use proper CLI formatting and avoid generic advice.
 """
 
     output = llama(prompt=prompt, max_tokens=256, stop=["###"])
@@ -241,6 +261,45 @@ def history():
     all_qa = QAHist.query.order_by(QAHist.id.desc()).all()
     return render_template("history.html", history=all_qa)
 
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route("/upload", methods=["GET", "POST"])
+def upload():
+    if request.method == "POST":
+        if 'pdfs' not in request.files:
+            return "No file part",400
+        files = request.files.getlist['pdfs']
+        if not files or all(f.filename == '' for f in files):
+            return "No files selected", 400
+        uploaded_files = []
+        all_chunks = []
+        for file in files:
+           if file and allowed_file(file.filename):
+               filename = secure_filename(file.filename)
+               filepath = os.path.join(PDF_FOLDER, filename)
+               file.save(filepath)
+
+            # Process and embed this new file
+            filepath = os.path.join(PDF_FOLDER, filename)
+            raw_docs = extract_text_from_pdfs_single(filepath)          
+            
+            for doc in raw_docs:
+                chunks = split_text(doc)
+                all_chunks.extend(chunks)
+            uploaded_files.append(filename)
+            
+        if all_chunks:
+            load_embeddings_to_pg(all_chunks, embedder)
+
+            return "PDF uploaded and processed successfully.",200
+        else:
+            return "No valid content found in uploaded PDFs.", 400
+    return render_template("upload.html")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='0.0.0.0', help='Host address to listen on')
@@ -248,4 +307,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     app.run(host=args.host, port=args.port)
-
