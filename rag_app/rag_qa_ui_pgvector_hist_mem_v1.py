@@ -274,7 +274,7 @@ def upload():
     if request.method == "POST":
         if 'pdfs' not in request.files:
             return "No file part",400
-        files = request.files.getlist['pdfs']
+        files = request.files.getlist('pdfs')
         if not files or all(f.filename == '' for f in files):
             return "No files selected", 400
         uploaded_files = []
