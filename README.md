@@ -17,7 +17,14 @@ This is a Retrieval-Augmented Generation (RAG) application that uses `llama.cpp`
 - `helm package /root/rag-app --destination /root`
 - `helm install rag-app rag-app-0.1.0.tgz`
 
-### 1. Docker images (Local)
+###  Docker images (Local)
 - docker build sabya610/rag-app:latest .
 - docker push sabya610/rag-app
+
+### Delete and CLean UP kb_chunks tables .Clear and Re-embed Your Database
+Because your existing chunks are already embedded incorrectly, you must reset the kb_chunks table.
+Run this in your DB (e.g., psql or PgAdmin):
+
+sql
+DELETE FROM kb_chunks;
 
