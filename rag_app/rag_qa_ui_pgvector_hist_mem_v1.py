@@ -285,14 +285,14 @@ def upload():
                filepath = os.path.join(PDF_FOLDER, filename)
                file.save(filepath)
 
-            # Process and embed this new file
-            filepath = os.path.join(PDF_FOLDER, filename)
-            raw_docs = extract_text_from_pdfs_single(filepath)          
+           # Process and embed this new file
+           filepath = os.path.join(PDF_FOLDER, filename)
+           raw_docs = extract_text_from_pdfs_single(filepath)          
             
-            for doc in raw_docs:
-                chunks = split_text(doc)
-                all_chunks.extend(chunks)
-            uploaded_files.append(filename)
+           for doc in raw_docs:
+               chunks = split_text(doc)
+               all_chunks.extend(chunks)
+           uploaded_files.append(filename)
             
         if all_chunks:
             load_embeddings_to_pg(all_chunks, embedder)
