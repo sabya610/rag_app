@@ -1,0 +1,17 @@
+image:
+  repository: yourdockerhubuser/rag-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+env:
+  DATABASE_URL: "postgresql://user:password@dbhost:5432/yourdb"
+
+secretEnv:
+  OPENAI_API_KEY: "your-api-key"
+
+resources: {}
