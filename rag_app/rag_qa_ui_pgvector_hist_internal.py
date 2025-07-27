@@ -1,3 +1,4 @@
+
 """
 Flask-based Retrieval-Augmented Generation (RAG) application that uses:
 
@@ -30,9 +31,9 @@ from dotenv import load_dotenv
 
 
 # Configuration
-PDF_FOLDER = "/app/pdf_kb_files"
-MODEL_PATH = "/app/models/llama-2-7b-chat.Q4_K_M.gguf"
-EMBEDDING_MODEL = "/app/models/embedding/all-MiniLM-L6-v2"
+PDF_FOLDER = "C:\\Users\\sohini\\ere_kb_tool\\pdf_kb_files"
+MODEL_PATH = "C:\\Users\\sohini\\ere_kb_tool\\models\\llama-2-7b-chat.Q4_K_M.gguf"
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 PGVECTOR_DIM = 384
 MAX_RESULTS = 5
 ALLOWED_EXTENSIONS = {'pdf'}
@@ -46,7 +47,7 @@ DB_PASS = quote_plus(os.getenv("DB_PASS"))
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
-
+os.environ["FLASK_RUN_FROM_CLI"] = "false"  # disables click banner
 
 
 # Flask and DB setup
@@ -116,18 +117,33 @@ def extract_text_from_pdfs_single(filepath):
                     text_chunks.append(paragraph.strip())
     return [chunk for chunk in text_chunks if len(chunk) > 40]
 
-def split_text(text, chunk_size=500):
-    sentences = text.split('. ')
+import re
+
+def split_text(text, chunk_size=700):
+    """
+    Splits text semantically using section headers, bullet points, and command blocks.
+    Keeps chunks meaningful for retrieval.
+    """
+    section_pattern = re.compile(r'(Section\s+\d+[:.]|^\d+\.\d+|Step\s+\d+\.\d+)', re.IGNORECASE | re.MULTILINE)
+    parts = section_pattern.split(text)
+
     chunks = []
-    chunk = ""
-    for sentence in sentences:
-        if len(chunk) + len(sentence) < chunk_size:
-            chunk += sentence + ". "
+    buffer = ""
+    for i in range(0, len(parts), 2):
+        header = parts[i].strip()
+        body = parts[i + 1].strip() if i + 1 < len(parts) else ""
+
+        chunk = (header + "\n" + body).strip()
+        if len(buffer) + len(chunk) < chunk_size:
+            buffer += "\n" + chunk
         else:
-            chunks.append(chunk.strip())
-            chunk = sentence + ". "
-    if chunk:
-        chunks.append(chunk.strip())
+            if buffer:
+                chunks.append(buffer.strip())
+            buffer = chunk
+
+    if buffer:
+        chunks.append(buffer.strip())
+
     return chunks
 
 def load_embeddings_to_pg(chunks, embedder):
@@ -135,6 +151,7 @@ def load_embeddings_to_pg(chunks, embedder):
     for chunk in chunks:
         vec = embedder.encode(chunk).tolist()
         db.session.add(KBChunk(text=chunk, embedding=vec))
+    #print(f"The Chunks uploading to DB ",chunks)
     db.session.commit()
 
 
@@ -145,7 +162,7 @@ def cached_embedding(text):
     return embedder.encode(text).tolist()
 
 
-def retrieve_relevant_chunks_pg(query, embedder, top_k=3):
+def retrieve_relevant_chunks_pg(query, embedder, top_k=MAX_RESULTS):
     #query_vec = embedder.encode(query).tolist()
     query_vec = cached_embedding(query)
 
@@ -166,38 +183,39 @@ def retrieve_relevant_chunks_pg(query, embedder, top_k=3):
 
 
 def generate_answer(context_chunks, question, llama):
-    context = "\n".join(context_chunks)
+    context = "\n\n".join(context_chunks)
     print("Question:", question)
-    print("Context retrieved:")
-    for chunk in top_chunks:
-       print(chunk)
+    print("Context retrieved:", context)
+
     prompt = f"""
-You are a senior technical assistant specializing in Kubernetes and HPE Ezmeral Container Platform.
+You are a HPE Ezmeral Runtime Platform expert assistant working on HPE Ezmeral Runtime Platform and kubernetes.
 
-You are answering a troubleshooting or operations question from a platform administrator. 
-Your answers are based on internal HPE technical documentation from support PDFs.
+ONLY use commands that appear in the context below. Do NOT invent commands or flags. If a command does not exist in the context, do NOT include it. Respond only with factual, Markdown-formatted output for SREs and Platform Engineers.
 
-Context:
+### Context:
 {context}
 
-Question:
+### Question:
 {question}
 
-Instructions:
-- Use only verified information from the internal HPE PDF documents.
-- Use ONLY facts from the context. If not covered, reply: "Not covered in documentation."
-- Include terminal commands in code blocks (```)
-- Avoid hallucination.
-- Format output using headers (###), lists, and code blocks (```bash ... ```)
-- Highlight critical instructions with bold or bullet points.
-- Provide a clear, step-by-step guide tailored to the Ezmeral Runtime environment.
-- Use proper CLI formatting and avoid generic advice.
+---
+
+### Response (Markdown format):
+
+- Use only exact instructions and CLI commands found in the context.
+- donot hallucinate
+- Format steps using numbered bullet points.
+- Format CLI commands inside ```bash blocks.
+- End with <END> and nothing else.
 """
 
-    output = llama(prompt=prompt, max_tokens=1024, stop=["###"])
+   
+    output = llama(prompt=prompt, max_tokens=2048, stop=["<END>"])
     #print(f"The prompt is {prompt}")
     #print(f"COntext is {context}")
     return output["choices"][0]["text"].strip()
+
+
 
 # Load llama model and embedder once
 try:
@@ -210,7 +228,7 @@ except Exception as e:
 try:
    llama = Llama(
       model_path=MODEL_PATH,
-      n_ctx=2048,
+      n_ctx=4096,
       temperature=0.7,
       top_p=0.9,
       repeat_penalty=1.1,
