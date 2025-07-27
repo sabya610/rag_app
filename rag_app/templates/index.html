@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>PDF RAG Assistant</title>
+    <title>KB PDF RAG Assistant</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,10 +16,11 @@
             border-radius: 10px;
             box-shadow: 0 0 10px #ccc;
         }
-        input[type=text] {
+        input[type=text], input[type=file] {
             width: 100%;
             padding: 12px;
             font-size: 16px;
+            margin-top: 10px;
         }
         button {
             margin-top: 10px;
@@ -37,29 +38,45 @@
             font-style: italic;
             color: #666;
         }
+        .section-divider {
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Ask Your Question</h1>
-        <form method="post">
+        <form method="post" enctype="multipart/form-data">
             <input type="text" name="question" placeholder="Enter your question here" required>
             <button type="submit">Submit</button>
         </form>
 
-        <div id="loading" style="display:none;">⏳ Thinking...</div>
+        <div id="loading" style="display:none;"> Thinking...</div>
 
         {% if answer %}
             <div class="answer">
-                <h3>💡 Response:</h3>
-				<pre style="white-space: pre-wrap;">{{ answer }}</pre>
+                <h3> Response:</h3>
+                <pre style="white-space: pre-wrap;">{{ answer }}</pre>
             </div>
         {% endif %}
 
+        <div class="section-divider">
+            <h2> Upload New PDF(s) </h2>
+            <form method="post" action="/upload" enctype="multipart/form-data">
+                <input type="file" name="pdfs" accept="application/pdf" multiple required>
+                <button type="submit">Upload PDF</button>
+            </form>
+        </div>
+
         <script>
-            document.querySelector('form').addEventListener('submit', function () {
-                document.getElementById('loading').style.display = 'block';
-            });
+            const allForms = document.querySelectorAll('form');
+            allForms.forEach(form => {
+                 form.addEventListener('submit', function () {
+                      document.getElementById('loading').style.display = 'block';
+                  });
+             })
         </script>
     </div>
 </body>

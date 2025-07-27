@@ -17,6 +17,7 @@ from sentence_transformers import SentenceTransformer
 from functools import lru_cache
 from llama_cpp import Llama
 
+
 import re
 import os
 import numpy as np
@@ -51,8 +52,6 @@ db = SQLAlchemy(app)
 print(f"Connecting to DB at postgresql://{DB_USER}:<hidden>@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 
 
-# pgvector extension support
-from pgvector.sqlalchemy import Vector
 
 class KBChunk(db.Model):
     __tablename__ = "kb_chunks"
