@@ -1,15 +1,27 @@
+# Web framework
 flask
 flask_sqlalchemy
 flask_cors
-python-dotenv
-requests
-llama-cpp-python
+werkzeug
+
+# Database + vector search
+#sqlalchemy
+psycopg2-binary
+pgvector
+
+# Embeddings + ML
 sentence-transformers
-PyPDF2
-numpy
-scikit-learn
-sqlalchemy
-psycopg2-binary       
-pgvector              
+
+# LLM inference
+llama-cpp-python
+
+# PDF + text utils
+pdfminer.six
+markdown2
+
+# Environment
 python-dotenv
-gunicorn              
+
+# Production server
+gunicorn
+              

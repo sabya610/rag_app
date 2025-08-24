@@ -1,10 +1,10 @@
-# Base Python image
+#Base Python image
 FROM python:3.10-slim
 
-# System dependencies
+#System Dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libopenblas-dev \
+    lophenols-dev \
     curl \
     git \
     cmake \
@@ -14,25 +14,27 @@ RUN apt-get update && apt-get install -y \
     libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+
+#Set working directory
 WORKDIR /app
 
-# Copy your project files
-COPY . /app
+#Copy your project files
+COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --upgrade pip
+ 
+#Install Python Dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+#Copy source
+COPY . .
 
 # Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV TRANSFORMERS_OFFLINE=1
-
-# Incorporate model into the image
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2').save('/rag-app/models/embedding')"
-
+ENV PYTHONBUFFERED=1
+ENV FLASK_APP=rag_app.py
 
 # Expose Flask port
 EXPOSE 5000
 
 # Default startup using gunicorn
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "-w", "2" , "-b", "0.0.0.0:5000", "rag_		app:app"]
+
