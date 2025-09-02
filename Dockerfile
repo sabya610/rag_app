@@ -30,18 +30,26 @@ COPY .env ./rag_app
 #COPY __init__.py .
 
 # Copy additional resources into container
-COPY models ./models
-COPY postgres ./postgres
-COPY pdf_kb_files ./pdf_kb_files
-COPY helm ./helm
+COPY models /app/rag_app/models
+COPY postgres /app/rag_app/postgres
+COPY pdf_kb_files /app/rag_app/pdf_kb_files
+COPY helm /app/rag_app/helm
+COPY models/embedding/all-MiniLM-L6-v2 /app/rag_app/models/embedding/all-MiniLM-L6-v2
+
 
 # Set environment variables
-ENV PYTHONUNBUFFERED=1 \
+ENV PYTHONPATH=/app/rag_app \
+    PYTHONUNBUFFERED=1 \
     FLASK_APP=run.py \
     TRANSFORMERS_OFFLINE=1
+
+
+#RUN python -c "from sentence_transformers import SentenceTransformer; \
+#    SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2').save('/app/rag_app/app/models/embedding')"
+
 
 # Expose Flask/Gunicorn port
 EXPOSE 5000
 
 # Run app with Gunicorn (using run.py as entrypoint)
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "run:app"]
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "rag_app.run:app"]
