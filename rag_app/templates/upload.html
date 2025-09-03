@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload PDFs</title>
+</head>
+<body>
+    <h1>Upload PDF Files</h1>
+
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <input type="file" name="pdfs" multiple required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <p><a href="/">Back to Home</a></p>
+</body>
+</html>

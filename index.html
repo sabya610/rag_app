@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KB PDF RAG Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+            background: #f7f7f7;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ccc;
+        }
+        input[type=text], input[type=file] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        .answer {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e0f7fa;
+            border-left: 4px solid #00796b;
+        }
+        #loading {
+            margin-top: 20px;
+            font-style: italic;
+            color: #666;
+        }
+        .section-divider {
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ask Your Question</h1>
+        <form method="post" enctype="multipart/form-data">
+            <input type="text" name="question" placeholder="Enter your question here" required>
+            <button type="submit">Submit</button>
+        </form>
+
+        <div id="loading" style="display:none;"> Thinking...</div>
+
+        {% if answer %}
+            <div class="answer">
+                <h3> Response:</h3>
+                <pre style="white-space: pre-wrap;">{{ answer }}</pre>
+            </div>
+        {% endif %}
+
+        <div class="section-divider">
+            <h2> Upload New PDF(s) </h2>
+            <form method="post" action="/upload" enctype="multipart/form-data">
+                <input type="file" name="pdfs" accept="application/pdf" multiple required>
+                <button type="submit">Upload PDF</button>
+            </form>
+        </div>
+
+        <script>
+            const allForms = document.querySelectorAll('form');
+            allForms.forEach(form => {
+                 form.addEventListener('submit', function () {
+                      document.getElementById('loading').style.display = 'block';
+                  });
+             })
+        </script>
+    </div>
+</body>
+</html>

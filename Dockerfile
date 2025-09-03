@@ -52,4 +52,4 @@ ENV PYTHONPATH=/app/rag_app \
 EXPOSE 5000
 
 # Run app with Gunicorn (using run.py as entrypoint)
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "rag_app.run:app"]
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--timeout", "300", "--preload","rag_app.run:app"]
