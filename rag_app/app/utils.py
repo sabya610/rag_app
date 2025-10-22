@@ -49,15 +49,19 @@ def clean_and_merge_lines(lines):
     """
     chunks, current = [], []
     section_pattern = re.compile(r"^(Section\s+\d+[:.]|^\d+\.\d+|Step\s+\d+(\.\d+)*|\d+\.)")
-    command_pattern = re.compile(r"^(#|sudo\s+)?(kubectl|kubeadm|helm|cat|curl|docker|systemctl|cp|rm|openssl|base64|grep|awk|sed|tee|chown|chmod|bdconfig|bd_mgmt|erlang|mnesia|/opt/)")
+    #command_pattern = re.compile(r"^(#|sudo\s+)?(kubectl|kubeadm|helm|cat|curl|docker|systemctl|cp|rm|openssl|base64|grep|awk|sed|tee|chown|chmod|bdconfig|bd_mgmt|erlang|mnesia|/opt/)")
+    command_pattern = re.compile(
+    r"(?:(?:#|sudo\s+)?(?:kubectl|kubeadm|helm|cat|curl|docker|systemctl|cp|rm|openssl|base64|grep|awk|sed|tee|chown|chmod|bdconfig|bd_mgmt|erlang|mnesia|/opt/).*)",
+    re.IGNORECASE,
+)
     for line in lines:
         line = line.strip()
-        
+
         line = unicodedata.normalize("NFKC", line)
         if not line:
             continue
-            
-            
+
+
         if section_pattern.match(line) or line.lower().startswith("issue") or line.lower().startswith("cause") or line.lower().startswith("resolution") or line.lower().startswith("environment") or re.match(r'^\s*(##\s*)?(resolution|procedure|steps?|issue|cause|workaround)\b', line.strip(), re.I):
             if current:
                 chunks.append("\n".join(current).strip())
@@ -68,25 +72,46 @@ def clean_and_merge_lines(lines):
             else:
                 current.append(line)
             continue
+        #if command_pattern.match(line):
+        #    # Split into multiple commands if many appear in one line
+        #    commands = re.split(r'\s+(?=(kubectl|kubeadm|helm|cat|curl|docker|systemctl|cp|rm|openssl|base64|grep|awk|sed|tee|chown|chmod|bdconfig|bd_mgmt|erlang|mnesia|/opt/))', line)
+        #    for cmd in commands:
+        #        cmd = cmd.strip()
+        #        if cmd:
+        #            current.append(f"```bash\n{cmd}\n```")
+
+        #current.append(line)
+
         if command_pattern.match(line):
-            # Split into multiple commands if many appear in one line
-            commands = re.split(r'\s+(?=(kubectl|kubeadm|helm|cat|curl|docker|systemctl|cp|rm|openssl|base64|grep|awk|sed|tee|chown|chmod|bdconfig|bd_mgmt|erlang|mnesia|/opt/))', line)
-            for cmd in commands:
-                cmd = cmd.strip()
-                if cmd:
-                    current.append(f"```bash\n{cmd}\n```")
-        
-        current.append(line)
-    
-    
+              # Split multiple commands in same line (e.g., 'systemctl start a systemctl start b')
+              cmds = re.findall(command_pattern, line)
+              for cmd in cmds:
+                  cmd_clean = cmd.strip()
+                  if cmd_clean:
+                        current.append(f"```bash\n{cmd_clean}\n```")
+              continue  # prevent adding raw line again
+
+
+        if line.strip().lower().startswith("note:"):
+             current.append(f"> **{line.strip()}**")
+             continue
+
+
     if current:
-        chunks.append("\n".join(current).strip())
+        #chunks.append("\n".join(current).strip())
+        chunks.append("\n\n".join(current).strip())
+
     # filter tiny non-code fragments
     final = []
+
     for c in chunks:
         if "```bash" in c or len(c.strip()) >= 10:
             final.append(c)
-       
+    for i, c in enumerate(final):
+        c = re.sub(r'(```bash\s*)+\n*', '```bash\n', c)   # collapse duplicate code fence openings
+        c = re.sub(r'\n*(```)+', '\n```', c)              # ensure single closing fence
+        final[i] = c.strip()
+
     return final
 
 def normalize_chunk(chunk):
@@ -180,6 +205,7 @@ def clean_pdf_text(full_text):
     text = "\n".join(cleaned_lines)
     text = re.sub(r'\s+([.,:;!?])', r'\1', text)     # no space before punctuation
     text = re.sub(r'[ \t]+', ' ', text)              # collapse runs of spaces
+    text = re.sub(r'(?<!:)//+', '/', text)
     return text.strip()
 
 
@@ -207,14 +233,14 @@ def extract_text_from_pdfs_single(filepath):
     seen = set()
     try:
         full_text = extract_text_pdfminer(filepath)
-        
+
         full_text = clean_pdf_text(full_text)
-        
+
         lines = full_text.splitlines()
-               
+
         deduped_chunks = []
         for chunk in clean_and_merge_lines(lines):
-            
+
             chunk_norm = normalize_chunk(chunk)
             if len(chunk_norm) >= 5 and chunk_norm not in seen:
                 deduped_chunks.append(chunk_norm)
@@ -222,7 +248,7 @@ def extract_text_from_pdfs_single(filepath):
         return deduped_chunks
     except Exception as e:
         print(f"[ERROR] Failed to read {filepath}: {e}")
-        
+
     print(f"Raw chunks from {fname}:", raw_chunks)
     print(f"Overlapped chunks from {fname}:", all_chunks)
 
@@ -249,7 +275,7 @@ def split_text(text, chunk_size=900):
             buf = line + "\n"
     if buf.strip():
         chunks.append(buf.strip())
-        
+
     return [c for c in chunks if len(c.strip()) >= 10]
 
 def overlapping_chunks(chunks, overlap=2):
@@ -270,7 +296,7 @@ def load_embeddings_to_pg(chunks, source_file):
         db.session.add(KBChunk(text=chunk, embedding=vec, chunk_id=f"{source_file}_chunk_{i}",source_file=source_file))
 
     print(f"[DEBUG] Inserted {len(chunks)} chunks into DB")
-    
+
     db.session.commit()
 
 @lru_cache(maxsize=2000)
@@ -303,9 +329,9 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
     top_k = top_k or MAX_RESULTS
     embedder = current_app.embedder
     query_vec = embedder.encode(query).tolist()
-    
-    
-    
+
+
+
     # Step 1: Initial retrieval
     sql = sa_text("""
         SELECT text, source_file, embedding <-> CAST(:query_vec AS vector) AS dist
@@ -425,9 +451,27 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
 
     print(f"[DEBUG] Style detected: {doc_style}, returning {len(final_chunks)} chunks from {source_file}")
 
-    
-    
+
+
     return final_chunks
+
+def clean_context(text):
+    # 1. Remove exact duplicate lines
+    seen, out = set(), []
+    for line in text.splitlines():
+        line = line.strip()
+        if line and line not in seen:
+            out.append(line)
+            seen.add(line)
+    text = "\n".join(out)
+
+    # 2. Fix broken bash fences (open without closing)
+    text = re.sub(r'(```bash\s*)(?![\s\S]*?```)', r'\1\n```', text)
+    # 3. Remove partial fenced lines like "```bash systemctl ```"
+    text = re.sub(r'```bash\s*systemctl\s*```', '```bash\nsystemctl\n```', text)
+    # 4. Collapse consecutive identical command blocks
+    text = re.sub(r'(```bash[\s\S]*?```)(\s*\1)+', r'\1', text)
+    return text.strip()
 
 
 
@@ -436,16 +480,20 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
 # LLM FALLBACK (only if extractive fails)
 # ====================
 def llm_answer(context_chunks, question):
-    
+
     llama = current_app.llama
-    context = "".join(context_chunks)
+    #context = "".join(context_chunks)
+    context = clean_context("".join(context_chunks))
     print("Question:", question)
     print("Context retrieved:", context)
-    
+
     prompt = f"""
 You are a Kubernetes platform assistant for HPE Ezmeral.
 
 Use only CLI commands and instructions found **exactly** in the context below.
+Ensure numbered steps are consistent and not appended multiple times.
+Make sure each bash block starts and ends properly.
+Ensure the output do not have duplicated instructions.
 Do not invent commands that are not in the context.
 Provide a clear, **numbered** list of steps in order.
 Each step must be on a new line and contain any commands inside fenced ```bash code blocks.
@@ -460,17 +508,14 @@ Each step must be on a new line and contain any commands inside fenced ```bash c
 Numbered Steps:
 """
 
-    
+
     out = llama(
         prompt=prompt,
         max_tokens=2048,
         stop=["<END>"]
     )
-        
-    
+
+
     #pdb.set_trace()
-    
+
     return out["choices"][0]["text"].strip()
-
-
-
