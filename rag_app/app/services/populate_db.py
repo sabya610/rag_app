@@ -16,11 +16,11 @@ def populatedb():
     print("PDF Folder:", Config.PDF_FOLDER)
     print("Files inside:", os.listdir(Config.PDF_FOLDER))
 
-    
+
     for filename in os.listdir(Config.PDF_FOLDER):
         if filename.lower().endswith(".pdf"):
             already_in_db = db.session.query(KBChunk).filter_by(source_file=filename).first()
-            
+
             if not already_in_db:
                 path = os.path.join(Config.PDF_FOLDER, filename)
                 #"EXtracting Text from File"
@@ -32,7 +32,7 @@ def populatedb():
                     overlapped = overlapping_chunks(split_chunks, overlap=1)
                     all_chunks.extend(overlapped)
                 if all_chunks:
-                    ###"Database populated chunks 
+                    ###"Database populated chunks
                     load_embeddings_to_pg(all_chunks, filename)
-    
+
     print("[OK] Database populated.")

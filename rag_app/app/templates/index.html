@@ -40,33 +40,33 @@
             border-radius: 5px;
             overflow-x: auto;
         }
-		.bash-block {
-			background: #272822 !important;
-			color: #f8f8f2 !important;
-			font-family: monospace;
-			padding: 10px;
-			border-radius: 6px;
-			white-space: pre-wrap;
-			margin: 10px 0;
-			border-left: 4px solid #00796b;
-		}
+                .bash-block {
+                        background: #272822 !important;
+                        color: #f8f8f2 !important;
+                        font-family: monospace;
+                        padding: 10px;
+                        border-radius: 6px;
+                        white-space: pre-wrap;
+                        margin: 10px 0;
+                        border-left: 4px solid #00796b;
+                }
 
-		.yaml-block {
-			background: #002b36 !important;
-			color: #93a1a1 !important;
-			font-family: monospace;
-			padding: 10px;
-			border-radius: 6px;
-			white-space: pre-wrap;
-			margin: 10px 0;
-			border-left: 4px solid #00796b;
-		}
-		.answer p {
-			margin: 5px 0;
-		}
-		.answer strong {
-			color: #00796b;
-		}
+                .yaml-block {
+                        background: #002b36 !important;
+                        color: #93a1a1 !important;
+                        font-family: monospace;
+                        padding: 10px;
+                        border-radius: 6px;
+                        white-space: pre-wrap;
+                        margin: 10px 0;
+                        border-left: 4px solid #00796b;
+                }
+                .answer p {
+                        margin: 5px 0;
+                }
+                .answer strong {
+                        color: #00796b;
+                }
         .answer h4 {
             color: #00796b;
             margin-bottom: 5px;
@@ -96,12 +96,12 @@
 
         <div id="loading" style="display:none;"> Thinking...</div>
 
-		{% if answer %}
-			<div class="answer">
-				<h3>Response:</h3>
-				<div style="white-space: pre-wrap;">{{ answer | safe }}</div>
-			</div>
-		{% endif %}
+                {% if answer %}
+                        <div class="answer">
+                                <h3>Response:</h3>
+                                <div style="white-space: pre-wrap;">{{ answer | safe }}</div>
+                        </div>
+                {% endif %}
 
 
         <div class="section-divider">

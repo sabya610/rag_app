@@ -16,34 +16,34 @@ PDF_FOLDER = Config.PDF_FOLDER
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'pdf'
-    
+
 
 @rag_bp.route("/", methods=["GET","POST"])
 def index():
     answer = ""
     html_response = ""
-    
+
     embedder = current_app.embedder
-    
+
     llama = current_app.llama
-    
-    
+
+
     if request.method == "POST":
         question = request.form["question"]
 
         chunks = retrieve_relevant_chunks_pg(question, top_k=50)
-        
+
         full_context = "".join(chunks)
-        
+
         print(f"\n [CONTEXT USED]\n {full_context}")
-        
+
         answer = llm_answer(full_context, question)
-        
+
         qa = QAHist(question=question, answer=answer)
         db.session.add(qa)
         db.session.commit()
- 
-        
+
+
         print(f"The Answer to be rendered {answer}\n\n")
     return render_template("index.html", answer=answer)
 
@@ -52,9 +52,9 @@ def index():
 @rag_bp.route("/upload", methods=["GET","POST"])
 def upload():
     if request.method == "POST":
-        
+
         embedder = current_app.embedder
-        
+
         files = request.files.getlist('pdfs')
         all_chunks = []
         for file in files:

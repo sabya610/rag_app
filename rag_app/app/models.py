@@ -15,7 +15,7 @@ class KBChunk(db.Model):
     chunk_id = db.Column(db.String)
     text = db.Column(db.Text, nullable=False)
     embedding = db.Column(Vector(Config.PGVECTOR_DIM), nullable=False)
-    source_file = db.Column(db.String, nullable=False) 
+    source_file = db.Column(db.String, nullable=False)
 
 
 class QAHist(db.Model):
@@ -50,5 +50,5 @@ def load_models():
             use_mmap=True,
         )
         print("[OK] LLaMA loaded.")
-        
+
     return embedder, llama

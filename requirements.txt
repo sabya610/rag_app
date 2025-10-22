@@ -24,4 +24,3 @@ python-dotenv
 
 # Production server
 gunicorn
-              

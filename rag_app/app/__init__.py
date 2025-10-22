@@ -30,7 +30,7 @@ llama = None
 def load_models():
     #global embedder, llama
     #if embedder is None:
-    
+
     print("[LOADING] Loading embedder")
     embedder = SentenceTransformer(Config.EMBEDDING_MODEL)
     print("[OK] Embedder loaded.")
@@ -48,21 +48,21 @@ def load_models():
         use_mmap=True,
     )
     print("[OK] LLaMA loaded.")
-   
+
     return embedder, llama
 
 def create_app():
-    
+
     base_dir = os.path.abspath(os.path.dirname(__file__))  # this is rag_app/app
     templates_dir = os.path.join(base_dir, "..", "templates")  # go one level up
     app = Flask(__name__,template_folder="templates")
 
     print("\n Flask template folder: \n", app.template_folder)
-    
+
     app.config.from_object(Config)
 
     app.config["SQLALCHEMY_DATABASE_URI"] =  Config.DB_URI
-    
+
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     """Initialize database and enforce UTF-8 encoding"""
@@ -73,10 +73,10 @@ def create_app():
         app.embedder = embedder
         app.llama = llama
         db.create_all()
-        
+
         #Populate DB with embeddings from PDFs.
         populatedb()
-        
+
         @event.listens_for(db.engine, "connect")
         def set_utf8_encoding(dbapi_connection, connection_record):
             cur = dbapi_connection.cursor()
@@ -88,8 +88,8 @@ def create_app():
                 cur.close()
 
     # Register Blueprints
-    
+
     app.register_blueprint(rag_bp)
-        
+
 
     return app

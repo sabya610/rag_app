@@ -14,14 +14,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>📜 Q&A History</h1>
+        <h1>Q&A History</h1>
         <a href="/">← Back to Ask</a>
         {% for entry in history %}
             <div class="qa">
-                <div class="question">❓ {{ entry.question }}</div>
+                <div class="question"> {{ entry.question }}</div>
                 <div class="answer">💡 {{ entry.answer }}</div>
             </div>
         {% endfor %}
     </div>
 </body>
-</html>
