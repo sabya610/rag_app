@@ -29,7 +29,7 @@ class QAHist(db.Model):
 # Globals (loaded only once)
 embedder = None
 llama = None
-
+"""
 def load_models():
     global embedder, llama
     if embedder is None:
@@ -52,3 +52,4 @@ def load_models():
         print("[OK] LLaMA loaded.")
 
     return embedder, llama
+"""
