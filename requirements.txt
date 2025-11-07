@@ -24,3 +24,18 @@ python-dotenv
 
 # Production server
 gunicorn
+
+# For Pytest
+pytest
+pytest-mock
+pytest-cov
+pytest-benchmark
+requests
+sentence-transformers
+psycopg2-binary
+langchain
+deepeval
+ragas
+faiss-cpu
+pandas
+numpy
