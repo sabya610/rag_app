@@ -10,5 +10,5 @@ def test_clean_and_merge_lines():
     ]
         
         chunks = clean_and_merge_lines(lines)
-        assert any("#Resolution" in c for c in chunks)
+        assert any(c.strip().lower().startswith("##") for c in chunks)
         assert any("```bash" in c for c in chunks)

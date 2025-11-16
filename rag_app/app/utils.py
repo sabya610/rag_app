@@ -245,14 +245,15 @@ def extract_text_from_pdfs_single(filepath):
             if len(chunk_norm) >= 5 and chunk_norm not in seen:
                 deduped_chunks.append(chunk_norm)
                 seen.add(chunk_norm)
-        return deduped_chunks
+        #return deduped_chunks
+        #print(f"Raw chunks from {os.path.basename(filepath)}:", raw_chunks)
+        #print(f"Overlapped chunks from {os.path.basename(filepath)}:", all_chunks)
+
+        return [chunk for chunk in deduped_chunks if len(chunk.strip()) >= 10]
+    
     except Exception as e:
         print(f"[ERROR] Failed to read {filepath}: {e}")
-
-    print(f"Raw chunks from {fname}:", raw_chunks)
-    print(f"Overlapped chunks from {fname}:", all_chunks)
-
-    return [chunk for chunk in deduped_chunks if len(chunk.strip()) >= 10]
+        return []    
 
 # ====================
 # CHUNK SPLITTING + OVERLAP
