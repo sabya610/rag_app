@@ -1,3 +1,5 @@
+# This is required for Rag App Integration Test 
+
 def query_model(prompt: str) -> str:
     """
     Stub for LLM call — in production, this could call llama.cpp or OpenAI API.

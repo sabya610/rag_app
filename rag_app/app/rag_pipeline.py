@@ -1,13 +1,14 @@
+# This is required for RAG Pipeline for Integration Test for Rag App
 # app/rag_pipeline.py
 
 from sentence_transformers import SentenceTransformer
 from app.utils import extract_text_from_pdfs_single, clean_and_merge_lines, split_text
-from app.llm_client import query_model  # this can be mocked during tests
+from app.llm_client import query_model  # mocked during tests
 import numpy as np
 
 class RAGPipeline:
     """
-    Minimal RAG pipeline simulation for testing.
+    RAG pipeline simulation for testing.
     - Handles PDF ingestion (text extraction + chunking)
     - Creates embeddings
     - Performs simple cosine similarity retrieval
@@ -17,7 +18,7 @@ class RAGPipeline:
     def __init__(self, embed_model_name: str = "all-MiniLM-L6-v2"):
         # Embedding model (mocked during testing)
         self.embedder = SentenceTransformer(embed_model_name)
-        self.vector_store = []  # simple list acting as a vector DB
+        self.vector_store = []  # list acting as a vector DB
 
     # ------------------------------
     # 1️⃣ PDF Ingestion + Chunking
@@ -54,7 +55,7 @@ class RAGPipeline:
     def query(self, user_query: str, top_k: int = 3):
         """Retrieve top-k chunks and generate response using LLM"""
         if not self.vector_store:
-            raise ValueError("No documents in vector store. Please run ingest_pdf() first.")
+            raise ValueError("No documents in vector store. run ingest_pdf() first.")
 
         # Encode query
         query_vec = np.array(self.embedder.encode([user_query])[0])
