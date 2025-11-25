@@ -1,1 +1,5 @@
 models/*.gguf
+sentence_import.py
+rag-app-0.1.0.tgz
+mssql-server-2019.rhel.8.x86_64.rpm
+helm-v3.17.4-linux-amd64.tar.gz

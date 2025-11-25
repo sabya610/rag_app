@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  rag-app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./rag_app:/app/rag_app
+      - ./models:/app/models
+      - ./pdf_kb_files:/app/pdf_kb_files
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/rag
+      - FLASK_ENV=development
+    depends_on:
+      - postgres
+
+  postgres:
+    image: ankane/pgvector
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rag
+    ports:
+      - "5432:5432"

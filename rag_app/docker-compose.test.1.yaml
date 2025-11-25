@@ -1,0 +1,10 @@
+tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/rag_test"
+    command: ["pytest", "-vv", "-s"]

@@ -29,7 +29,7 @@ def test_split_text(mock_extract_text_pdfminer,tmp_path):
     merged = clean_and_merge_lines(lines)
     text = "\n".join(merged)
     chunks = split_text(text,chunk_size=100)
-    pytest.set_trace()
+    #pytest.set_trace()
     assert all(len(c) <= 100 for c in chunks)
     
     cli_block = [c for c in chunks if "```bash" in c]

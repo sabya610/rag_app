@@ -5,37 +5,38 @@ flask_cors
 werkzeug
 
 # Database + vector search
-#sqlalchemy
 psycopg2-binary
 pgvector
 
-# Embeddings + ML
+# Embeddings (CPU-only)
 sentence-transformers
 
-# LLM inference
+# LLM inference (llama.cpp)
 llama-cpp-python
 
 # PDF + text utils
 pdfminer.six
 markdown2
 
-# Environment
+# Environment variables
 python-dotenv
 
 # Production server
 gunicorn
 
-# For Pytest
+# LangChain utilities (optional but your tests need it)
+langchain
+faiss-cpu
+
+# Data processing
+pandas
+numpy
+
+# Testing
 pytest
 pytest-mock
 pytest-cov
 pytest-benchmark
 requests
-sentence-transformers
-psycopg2-binary
-langchain
 deepeval
 ragas
-faiss-cpu
-pandas
-numpy

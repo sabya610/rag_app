@@ -1,0 +1,31 @@
+# Dockerfile.test – minimal image for CI pytest
+
+FROM python:3.10-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install deps
+COPY requirements.txt .
+RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
+
+# Copy only what tests need
+COPY rag_app ./rag_app
+COPY test ./test
+COPY models ./models
+COPY pdf_kb_files ./pdf_kb_files
+COPY postgres ./postgres
+COPY .env ./rag_app
+
+ENV PYTHONPATH=/app/rag_app \
+    PYTHONUNBUFFERED=1 \
+    TRANSFORMERS_OFFLINE=1
+
+# Default command for CI
+CMD ["pytest", "-vv", "-s"]

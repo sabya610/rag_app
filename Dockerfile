@@ -19,7 +19,7 @@ WORKDIR /app
 # Copy requirements first (for better caching)
 COPY requirements.txt .
 #RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --default-timeout=1000 torch==2.8.0 triton==3.4.0
+#RUN pip install --default-timeout=1000 torch==2.8.0 triton==3.4.0
 RUN pip install --default-timeout=1000 --no-cache-dir -r requirements.txt
 
 # Copy application source code
