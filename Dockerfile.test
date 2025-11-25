@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
 # Copy only what tests need
 COPY rag_app ./rag_app
-COPY test ./test
+COPY rag_app/test ./test
 #COPY models ./models
 #COPY pdf_kb_files ./pdf_kb_files
 #COPY postgres ./postgres
