@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install deps
-COPY requirements.txt .
-RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
+COPY requirements.test.txt .
+RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.test.txt
 
 # Copy only what tests need
 COPY rag_app ./rag_app

@@ -1,0 +1,27 @@
+# Testing
+pytest
+pytest-mock
+pytest-cov
+pytest-benchmark
+requests
+
+# Database + vector search
+psycopg2-binary
+pgvector
+
+# Light-weight embedding model (NO torch)
+sentence-transformers==2.2.2
+
+# LLM inference (CPU prebuilt wheel, no LLVM)
+llama-cpp-python==0.3.16 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu/
+
+# Light-weight langchain only
+langchain==0.2.11
+faiss-cpu
+
+# Utilities
+pdfminer.six
+markdown2
+python-dotenv
+pandas
+numpy
