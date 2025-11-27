@@ -13,16 +13,17 @@ services:
       retries: 10
       start_period: 5s
 
-  tests:
-    build:
-      context: .
-      dockerfile: Dockerfile.test
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/rag_test"
-      # If pgvector is used:
-      VECTOR_EXTENSION: "pgvector"
-    command: >
-      bash -c "pytest -vv -s"
+
+tests:
+  build:
+    context: .
+    dockerfile: Dockerfile.test
+  depends_on:
+    postgres:
+      condition: service_healthy
+  environment:
+    PYTHONPATH: "/app/rag_app"
+    DATABASE_URL: "postgres://postgres:postgres@postgres:5432/rag_test"
+    VECTOR_EXTENSION: "pgvector"
+  command: >
+    bash -c "pytest -vv -s"
