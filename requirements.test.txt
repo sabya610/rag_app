@@ -1,3 +1,19 @@
+# --- Web framework (required for app imports) ---
+flask
+flask_sqlalchemy
+flask_cors
+werkzeug
+
+# --- Database + Vector Search ---
+#psycopg2-binary
+#pgvector
+
+# --- Embeddings (lightweight) ---
+#sentence-transformers==2.2.2
+
+# --- LLM local inference (CPU prebuilt wheel) ---
+#llama-cpp-python==0.3.16 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu/
+
 pytest
 pytest-cov
 requests
