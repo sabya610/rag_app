@@ -1,29 +1,29 @@
 version: "3.9"
 services:
-  postgres:
-    image: ankane/pgvector
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: rag_test
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
+  #postgres:
+  #  image: ankane/pgvector
+  #  environment:
+  #    POSTGRES_USER: postgres
+  #    POSTGRES_PASSWORD: postgres
+  #    POSTGRES_DB: rag_test
+  #  healthcheck:
+  #    test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #    interval: 5s
+  #    timeout: 5s
+  #    retries: 10
+  #    start_period: 5s
 
 
   tests:
     build:
       context: .
       dockerfile: Dockerfile.test
-    depends_on:
-      postgres:
-        condition: service_healthy
+  #  depends_on:
+  #    postgres:
+  #      condition: service_healthy
     environment:
       PYTHONPATH: "/app/rag_app"
-      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/rag_test"
-      VECTOR_EXTENSION: "pgvector"
+   #   DATABASE_URL: "postgres://postgres:postgres@postgres:5432/rag_test"
+   #   VECTOR_EXTENSION: "pgvector"
     command: >
       bash -c "pytest -vv -s"
