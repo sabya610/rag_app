@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 from app.routes.rag_routes import rag_bp
 from sqlalchemy import event
 import os
-from sentence_transformers import SentenceTransformer
-from llama_cpp import Llama
+#from sentence_transformers import SentenceTransformer
+#from llama_cpp import Llama
 from app.utils import (
     extract_text_from_pdfs_single, split_text,
     retrieve_relevant_chunks_pg, load_embeddings_to_pg,
@@ -20,23 +20,27 @@ from app.config import Config
 from app.services.populate_db import populatedb
 
 
-
-
-
 # Globals (loaded only once)
 embedder = None
 llama = None
 
 def load_models():
-    #global embedder, llama
+    global embedder, llama
     #if embedder is None:
+    print("[LOADING] Loading embedder (offline)")
+    from sentence_transformers import SentenceTransformer  # lazy import
 
-    print("[LOADING] Loading embedder")
-    embedder = SentenceTransformer(Config.EMBEDDING_MODEL)
-    print("[OK] Embedder loaded.")
+    model_path = Config.EMBEDDING_MODEL
+    print(f"[INFO] Loading model from: {model_path}")
+
+    embedder = SentenceTransformer(model_path)  # always local
+    print("[OK] Embedder loaded (offline).")
+
 
     #if llama is None:
     print("[LOADING] Loading llama.cpp model")
+    from llama_cpp import Llama  # lazy import
+
     llama = Llama(
         model_path=Config.MODEL_PATH,
         n_ctx=4096,

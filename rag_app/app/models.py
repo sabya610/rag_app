@@ -3,7 +3,7 @@ from sqlalchemy import event
 from pgvector.sqlalchemy import Vector
 from app.config import Config
 #from sentence_transformers import SentenceTransformer
-from llama_cpp import Llama
+#from llama_cpp import Llama
 
 
 
@@ -34,11 +34,13 @@ def load_models():
     global embedder, llama
     if embedder is None:
         print("[LOADING] Loading embedder")
+        from sentence_transformers import SentenceTransformer
         embedder = SentenceTransformer(Config.EMBEDDING_MODEL)
         print("[OK] Embedder loaded.")
 
     if llama is None:
         print("[LOADING] Loading llama.cpp model")
+        from llama_cpp import Llama 
         llama = Llama(
             model_path=Config.MODEL_PATH,
             n_ctx=4096,
