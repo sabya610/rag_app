@@ -73,9 +73,16 @@ def create_app():
     db.init_app(app)
 
     with app.app_context():
-        embedder, llama = load_models()
-        app.embedder = embedder
-        app.llama = llama
+        #embedder, llama = load_models()
+        #app.embedder = embedder
+        #app.llama = llama
+        if os.getenv("CI", "0") != "1":
+           embedder, llama = load_models()
+           app.embedder = embedder
+           app.llama = llama
+        else:
+            print("[CI MODE] Skipping model loading")
+        
         db.create_all()
 
         #Populate DB with embeddings from PDFs.
