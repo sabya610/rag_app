@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event
 from pgvector.sqlalchemy import Vector
 from app.config import Config
-from sentence_transformers import SentenceTransformer
+#from sentence_transformers import SentenceTransformer
 from llama_cpp import Llama
 
 
