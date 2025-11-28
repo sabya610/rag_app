@@ -1,0 +1,13 @@
+models/
+rag_app/models/
+rag_app/models/*
+pdf_kb_files/
+postgres/
+helm/
+*.tar.gz
+*.safetensors
+*.bin
+helm/*
+rag-app
+*.tgz
+*.rpm
