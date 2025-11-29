@@ -17,8 +17,9 @@ RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.test.txt
 
 # Copy only what tests need
 COPY rag_app/ ./rag_app
-COPY rag_app/test ./test
-COPY models ./rag_app/models
+RUN find . -type d -name "__pycache__" -exec rm -rf {} +
+#COPY rag_app/test ./test
+#COPY models ./rag_app/models
 
 #COPY models ./models
 #COPY pdf_kb_files ./pdf_kb_files
