@@ -22,7 +22,8 @@ services:
   #    postgres:
   #      condition: service_healthy
     environment:
-      PYTHONPATH: "/app/rag_app"
+      PYTHONPATH: "/app/rag_app:/app/rag_app/test"
+      CI: "1"
    #   DATABASE_URL: "postgres://postgres:postgres@postgres:5432/rag_test"
    #   VECTOR_EXTENSION: "pgvector"
     command: >
