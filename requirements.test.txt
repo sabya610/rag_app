@@ -13,9 +13,9 @@ pgvector
 psycopg2-binary
 python-dotenv
 #sentence-transformers==2.2.2
-sentence-transformers==2.2.2 --extra-index-url https://download.pytorch.org/whl/cpu
+#sentence-transformers==2.2.2 --extra-index-url https://download.pytorch.org/whl/cpu
 pdfminer.six
-transformers
+#transformers
 numpy
 scikit-learn
 # --- LLM local inference (CPU prebuilt wheel) ---
