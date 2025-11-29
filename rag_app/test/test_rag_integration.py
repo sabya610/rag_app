@@ -24,8 +24,8 @@ def sample_pdf(tmp_path):
     return pdf_path
 
 @patch("app.rag_pipeline.extract_text_from_pdfs_single")
-@patch("app.rag_pipeline.SentenceTransformer")
-@patch("app.rag_pipeline.query_model")  #  llama.cpp wrapper
+@patch("sentence_transformers.SentenceTransformer")
+@patch("app.rag_pipeline.query_model") #  llama.cpp wrapper
 def test_rag_pipeline_end_to_end(mock_llm, mock_st, mock_pdfminer, sample_pdf):
     # ---------------- Mock Setup ----------------
     #Mock PDF Extraction
