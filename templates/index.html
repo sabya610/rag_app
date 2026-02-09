@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KB PDF RAG Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+            background: #f7f7f7;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ccc;
+        }
+        input[type=text], input[type=file] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        .answer {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e0f7fa;
+            border-left: 4px solid #00796b;
+        }
+        .answer pre {
+            background: #f0f0f0;
+            border-left: 4px solid #00796b;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+		.bash-block {
+			background: #272822 !important;
+			color: #f8f8f2 !important;
+			font-family: monospace;
+			padding: 10px;
+			border-radius: 6px;
+			white-space: pre-wrap;
+			margin: 10px 0;
+			border-left: 4px solid #00796b;
+		}
+
+		.yaml-block {
+			background: #002b36 !important;
+			color: #93a1a1 !important;
+			font-family: monospace;
+			padding: 10px;
+			border-radius: 6px;
+			white-space: pre-wrap;
+			margin: 10px 0;
+			border-left: 4px solid #00796b;
+		}
+		.answer p {
+			margin: 5px 0;
+		}
+		.answer strong {
+			color: #00796b;
+		}
+        .answer h4 {
+            color: #00796b;
+            margin-bottom: 5px;
+        }
+        .answer code {
+           font-family: monospace;
+        }
+        #loading {
+            margin-top: 20px;
+            font-style: italic;
+            color: #666;
+        }
+        .section-divider {
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ask Your Question</h1>
+        <form method="post" action="/">
+            <input type="text" name="question" placeholder="Enter your question here" required>
+            <button type="submit">Submit</button>
+        </form>
+
+        <div id="loading" style="display:none;"> Thinking...</div>
+
+		{% if answer %}
+			<div class="answer">
+				<h3>Response:</h3>
+				<div style="white-space: pre-wrap;">{{ answer | safe }}</div>
+			</div>
+		{% endif %}
+
+
+        <div class="section-divider">
+            <h2> Upload New PDF(s) </h2>
+            <form method="post" action="/upload" enctype="multipart/form-data">
+                <input type="file" name="pdfs" accept="application/pdf" multiple required>
+                <button type="submit">Upload PDF</button>
+            </form>
+        </div>
+
+        <script>
+            const allForms = document.querySelectorAll('form');
+            allForms.forEach(form => {
+                 form.addEventListener('submit', function () {
+                      document.getElementById('loading').style.display = 'block';
+                  });
+             })
+        </script>
+    </div>
+</body>
+</html>

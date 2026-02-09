@@ -24,7 +24,7 @@ python-dotenv
 # Production server
 gunicorn
 
-# LangChain utilities (optional but your tests need it)
+# LangChain utilities 
 langchain
 faiss-cpu
 

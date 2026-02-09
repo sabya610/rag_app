@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Q&A History</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; background: #f7f7f7; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
+        h1 { font-size: 24px; margin-bottom: 20px; }
+        .qa { margin-bottom: 25px; padding: 15px; background: #eef; border-left: 4px solid #3c3c9c; }
+        .question { font-weight: bold; color: #222; }
+        .answer { margin-top: 10px; color: #333; }
+        a { text-decoration: none; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📜 Q&A History</h1>
+        <a href="/">← Back to Ask</a>
+        {% for entry in history %}
+            <div class="qa">
+                <div class="question">❓ {{ entry.question }}</div>
+                <div class="answer">💡 {{ entry.answer }}</div>
+            </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

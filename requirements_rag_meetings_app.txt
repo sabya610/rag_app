@@ -1,0 +1,32 @@
+# ---------------------------
+# RAG Meeting Transcript App
+# ---------------------------
+
+# Web Framework
+fastapi
+uvicorn
+
+# Database + Vector Search
+psycopg2-binary
+pgvector
+chromadb
+# Embeddings
+sentence-transformers
+
+# Local LLM Inference
+llama-cpp-python
+
+# Text + Markdown Formatting
+markdown2
+
+# PDF Parsing (optional but useful)
+#pdfminer.six==20231228
+
+# Environment Config
+python-dotenv
+
+# Utilities
+numpy
+pandas
+requests
+#gunicorn==21.2.0
