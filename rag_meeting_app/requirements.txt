@@ -1,0 +1,12 @@
+# Core dependencies
+sentence-transformers
+llama-cpp-python
+numpy
+
+# Optional (for future improvements)
+faiss-cpu
+pgvector
+chromadb
+
+# For CLI and file handling
+click
