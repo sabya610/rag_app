@@ -12,12 +12,21 @@ import sys
 import os
 def main():
     try:
-        embedder, llama = load_models()
-        llm_client = LLMClient(llama)
-        llm_service = LLMService(llm_client)
-        vector_store = VectorStore()
+        try:
+            embedder, llama = load_models()
+        except Exception as e:
+            print(f"[ERROR] Failed to load models: {e}")
+            return
+        try:
+            llm_client = LLMClient(llama)
+            llm_service = LLMService(llm_client)
+            vector_store = VectorStore()
+        except Exception as e:
+            print(f"[ERROR] Failed to initialize LLM or vector store: {e}")
+            return
 
         # Allow transcript path as a command-line argument
+        import sys, os
         if len(sys.argv) > 1:
             transcript_path = sys.argv[1]
         else:
@@ -26,20 +35,43 @@ def main():
         print(f"[INFO] Using transcript: {transcript_path}")
         if not os.path.exists(transcript_path):
             print(f"[ERROR] Transcript file not found: {transcript_path}")
-            sys.exit(1)
-
-        transcript = load_transcript(transcript_path)
-        issues = process_meeting_transcript(transcript, llm_service)
-        index_issues(issues, embedder, vector_store)
+            return
+        try:
+            transcript = load_transcript(transcript_path)
+        except Exception as e:
+            print(f"[ERROR] Failed to load transcript: {e}")
+            return
+        try:
+            issues = process_meeting_transcript(transcript, llm_service)
+            index_issues(issues, embedder, vector_store)
+        except Exception as e:
+            print(f"[ERROR] Failed during processing or indexing: {e}")
+            return
 
         print(f"\n[DONE] Indexed {len(issues)} issues.\n")
         print("Extracted Meeting Pointers:")
         for i, issue in enumerate(issues, 1):
             print(f"\n--- Issue {i} ---")
             print(issue)
+
+        # Save extracted meeting pointers as JSON
+        import json
+        try:
+            with open("extracted_meeting_pointers.json", "w", encoding="utf-8") as f:
+                json.dump(issues, f, ensure_ascii=False, indent=2)
+            print("[INFO] Extracted meeting pointers saved to extracted_meeting_pointers.json")
+        except Exception as e:
+            print(f"[ERROR] Could not save JSON output: {e}")
+        # Save as human-readable text (optional)
+        try:
+            with open("extracted_meeting_pointers.txt", "w", encoding="utf-8") as f:
+                for i, issue in enumerate(issues, 1):
+                    f.write(f"--- Issue {i} ---\n{issue}\n\n")
+            print("[INFO] Extracted meeting pointers saved to extracted_meeting_pointers.txt")
+        except Exception as e:
+            print(f"[ERROR] Could not save TXT output: {e}")
     except Exception as e:
-        print(f"[ERROR] {e}")
-        sys.exit(1)
+        print(f"[FATAL ERROR] {e}")
 
 
 if __name__ == "__main__":
