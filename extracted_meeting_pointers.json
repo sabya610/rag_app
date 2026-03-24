@@ -1,0 +1,99 @@
+[
+  {
+    "discussion_type": "coordination_and_planning",
+    "problem_statement": "find an opportunity that customer's looking for in monitoring solution",
+    "blockers_or_risks": "",
+    "decisions_made": "pitch in and let them know that there's an option monitoring tool that HPE offers",
+    "action_items": [
+      "Let him know about the HPE offering and services"
+    ],
+    "urgency_level": "low"
+  },
+  {
+    "discussion_type": "coordination_and_planning",
+    "problem_statement": "there is an opportunity from a customer that we need to act on",
+    "blockers_or_risks": "",
+    "decisions_made": "inform the customer about the product and schedule a demo",
+    "action_items": [
+      "inform the customer about the product and schedule a demo"
+    ],
+    "urgency_level": "low"
+  },
+  {
+    "discussion_type": "decision-making",
+    "problem_statement": null,
+    "blockers_or_risks": null,
+    "decisions_made": "The team may not be suggesting solutions or engaging in certain aspects of the customer's interest in HPE offerings and services, mainly from their team.",
+    "action_items": [],
+    "urgency_level": "medium"
+  },
+  {
+    "discussion_type": "decision_making",
+    "problem_statement": "How to deliver higher value to customers and generate incremental revenues through HP offerings",
+    "blockers_or_risks": "",
+    "decisions_made": "one lead programmes engineer will act as an trusted advisor and translate customers' pinpoints into concrete solution drawn from HP offering",
+    "action_items": [
+      "Act as an trusted advisor and translate customers' pinpoints into concrete solution drawn from HP offering"
+    ],
+    "urgency_level": "medium"
+  },
+  {
+    "discussion_type": "coordination_and_planning",
+    "problem_statement": "disclosure of project cost",
+    "blockers_or_risks": "",
+    "decisions_made": "only between the engineer support engineer who has submitted",
+    "action_items": [
+      "Review and approve the engineer support engineer's submission"
+    ],
+    "urgency_level": "low"
+  },
+  {
+    "discussion_type": "coordination_and_planning",
+    "problem_statement": "",
+    "blockers_or_risks": "",
+    "decisions_made": "",
+    "action_items": [],
+    "urgency_level": "low"
+  },
+  {
+    "discussion_type": "coordination_and_planning",
+    "problem_statement": "the team will get the bonus or amount for those things Commission of it, and this is not part of your salary. This is additional.",
+    "blockers_or_risks": "N/A",
+    "decisions_made": "Nayeem and Sanjamala discussed the bonus amount for team members if the lead is successful.",
+    "action_items": [
+      "Anup. M, Anoop to check the bonus amount for team members if the lead is successful."
+    ],
+    "urgency_level": "low"
+  },
+  {
+    "discussion_type": "coordination_and_planning",
+    "problem_statement": "Can we get the philtre option? What exactly you set it so that that will be a reference for us, yeah.",
+    "blockers_or_risks": "",
+    "decisions_made": "OK. OK. So in the philtre option, I have just given the e-mail address of my, so only the lead that you have raised, you'll be able to see it here.",
+    "action_items": [
+      "Get the philtre option configured for reference"
+    ],
+    "urgency_level": "low"
+  },
+  {
+    "discussion_type": "coordination_and_planning",
+    "problem_statement": "There are no questions about the presentation",
+    "blockers_or_risks": "",
+    "decisions_made": "None",
+    "action_items": [
+      "Send the presentation to the team for any questions"
+    ],
+    "urgency_level": "low"
+  },
+  {
+    "discussion_type": "coordination_and_planning",
+    "problem_statement": "How does communication happen between the sales team and the IT team?",
+    "blockers_or_risks": "",
+    "decisions_made": "No decisions made",
+    "action_items": [
+      "Reach out to the sales team to understand who picked up the lead and follow up with the customer",
+      "Check with the sales team for the current status of the lead"
+    ],
+    "urgency_level": "low"
+  }
+]

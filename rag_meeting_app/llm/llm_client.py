@@ -6,6 +6,6 @@ class LLMClient:
         response = self.llama(
             prompt,
             max_tokens=512,
-            stop=["</s>"]
+            stop=["</s>", "[INST]"]
         )
         return response["choices"][0]["text"].strip()

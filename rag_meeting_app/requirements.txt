@@ -2,11 +2,6 @@
 sentence-transformers
 llama-cpp-python
 numpy
-
-# Optional (for future improvements)
-faiss-cpu
-pgvector
-chromadb
-
-# For CLI and file handling
+fastapi
+uvicorn[standard]
 click

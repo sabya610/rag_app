@@ -1,0 +1,37 @@
+replicaCount: 1
+
+image:
+  repository: sabya610/rag-meeting-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+resources:
+  requests:
+    memory: "4Gi"
+    cpu: "2"
+  limits:
+    memory: "8Gi"
+    cpu: "4"
+
+env:
+  PYTHONPATH: "/app"
+  TRANSFORMERS_OFFLINE: "1"
+  HF_HUB_OFFLINE: "1"
+  HF_DATASETS_OFFLINE: "1"
+
+# Mount models from a PersistentVolumeClaim (recommended for large models)
+models:
+  enabled: false
+  pvcName: rag-meeting-models-pvc
+  mountPath: /app/models
+
+ingress:
+  enabled: false
+  className: ""
+  host: rag-meeting.local
+  path: /

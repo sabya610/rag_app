@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-rag-meeting
+  labels:
+    app: {{ .Release.Name }}-rag-meeting
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-rag-meeting
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-rag-meeting
+    spec:
+      containers:
+        - name: rag-meeting
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: PYTHONPATH
+              value: {{ .Values.env.PYTHONPATH | quote }}
+            - name: TRANSFORMERS_OFFLINE
+              value: {{ .Values.env.TRANSFORMERS_OFFLINE | quote }}
+            - name: HF_HUB_OFFLINE
+              value: {{ .Values.env.HF_HUB_OFFLINE | quote }}
+            - name: HF_DATASETS_OFFLINE
+              value: {{ .Values.env.HF_DATASETS_OFFLINE | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.models.enabled }}
+          volumeMounts:
+            - name: models-volume
+              mountPath: {{ .Values.models.mountPath }}
+          {{- end }}
+      {{- if .Values.models.enabled }}
+      volumes:
+        - name: models-volume
+          persistentVolumeClaim:
+            claimName: {{ .Values.models.pvcName }}
+      {{- end }}

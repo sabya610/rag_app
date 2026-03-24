@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "\\\\wsl.localhost\\Ubuntu\\home\\malliks"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../../edf-support-tools"
+		}
+	],
+	"settings": {}
+}
