@@ -57,5 +57,68 @@ If no path is provided, the app defaults to `data/raw/transcripts/meetings_1.txt
 - Ensure all models are downloaded and placed in the correct folders.
 - If you encounter missing package errors, check `requirements.txt`.
 
+## Docker: Build and Run
+
+### Build the Docker image
+Run from the `rag_app` parent directory (where `models/` and `rag_meeting_app/` both exist):
+```sh
+cd C:\Users\malliks\rag_app1\rag_app
+docker build -f rag_meeting_app/Dockerfile -t sabya610/rag-meeting-app:latest .
+```
+
+### Run locally with Docker
+```sh
+docker run -p 8000:8000 sabya610/rag-meeting-app:latest
+```
+
+### API Endpoints
+- `POST /ingest` — Ingest all transcripts from `data/raw/transcripts/`
+- `GET /ask?q=<question>` — Ask a question about the meetings
+- `GET /status` — Check how many chunks are indexed
+
+### Test the API
+```sh
+# Trigger ingestion
+curl -X POST http://localhost:8000/ingest
+
+# Ask a question
+curl "http://localhost:8000/ask?q=what+is+the+one+lead+programme"
+
+# Check status
+curl http://localhost:8000/status
+```
+
+## Kubernetes: Deploy with Helm
+
+### Push the image to a registry
+```sh
+docker push sabya610/rag-meeting-app:latest
+```
+
+### Install with Helm
+```sh
+cd rag_meeting_app/helm
+helm install rag-meeting rag-meeting-app/
+```
+
+### Customize values
+Edit `helm/rag-meeting-app/values.yaml` to change:
+- `image.repository` / `image.tag` — your container registry and tag
+- `resources` — CPU/memory requests and limits
+- `models.enabled` — set to `true` to mount models from a PersistentVolumeClaim
+- `ingress.enabled` — set to `true` to expose via Ingress
+
+### Upgrade or uninstall
+```sh
+helm upgrade rag-meeting rag-meeting-app/
+helm uninstall rag-meeting
+```
+
+### Port-forward to test locally
+```sh
+kubectl port-forward svc/rag-meeting-rag-meeting 8000:80
+curl http://localhost:8000/status
+```
+
 ## License
 MIT
