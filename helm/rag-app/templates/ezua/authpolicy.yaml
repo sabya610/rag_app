@@ -1,0 +1,23 @@
+{{- if .Values.ezua }}
+{{- if .Values.ezua.authorizationPolicy }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ .Release.Name }}-authpolicy
+  namespace: {{ .Values.ezua.authorizationPolicy.namespace }}
+  labels:
+    {{- include "hpe-ezua.labels" . | nindent 4 }}
+spec:
+  action: CUSTOM
+  provider:
+    name: {{ .Values.ezua.authorizationPolicy.providerName }}
+  selector:
+    matchLabels:
+      {{- toYaml .Values.ezua.authorizationPolicy.matchLabels | nindent 6 }}
+  rules:
+    - to:
+        - operation:
+            hosts:
+              - {{ .Values.ezua.virtualService.endpoint | quote }}
+{{- end }}
+{{- end }}

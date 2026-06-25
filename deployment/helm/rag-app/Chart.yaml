@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rag-app
+description: HPE Ezmeral RAG Knowledge Assistant - Flask + pgvector + LLaMA + SFDC
+type: application
+version: 0.2.0
+appVersion: "2.0.0"

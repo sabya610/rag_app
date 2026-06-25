@@ -18,16 +18,17 @@ WORKDIR /app
 
 # Copy requirements first (for better caching)
 COPY requirements.txt .
-#RUN pip install --no-cache-dir -r requirements.txt
-#RUN pip install --default-timeout=1000 torch==2.8.0 triton==3.4.0
-RUN pip install --default-timeout=1000 --no-cache-dir -r requirements.txt
 
-# Copy application source code
+# Install with trusted hosts to handle corporate proxy SSL interception
+RUN pip install --default-timeout=1000 --no-cache-dir \
+    --trusted-host pypi.org \
+    --trusted-host files.pythonhosted.org \
+    -r requirements.txt
+
+# Copy application source code (ARG invalidates cache when code changes)
+ARG CACHEBUST=1
 COPY rag_app ./rag_app
 COPY .env ./rag_app
-#COPY run.py .
-#COPY templates ./templates
-#COPY __init__.py .
 
 # Copy additional resources into container
 COPY models /app/rag_app/models
@@ -36,20 +37,23 @@ COPY pdf_kb_files /app/rag_app/pdf_kb_files
 COPY helm /app/rag_app/helm
 COPY models/embedding/all-MiniLM-L6-v2 /app/rag_app/models/embedding/all-MiniLM-L6-v2
 
+# Create SFDC secrets mount point (K8s Secret will mount sid.txt here)
+RUN mkdir -p /etc/sfdc
 
-# Set environment variables
+# Copy sid.txt if available at build time (optional, for non-K8s deploys)
+# In K8s, this is overridden by the Secret volume mount
+COPY sid.tx[t] /etc/sfdc/
+
+# Set environment variables (platform-agnostic)
 ENV PYTHONPATH=/app/rag_app \
     PYTHONUNBUFFERED=1 \
     FLASK_APP=run.py \
-    TRANSFORMERS_OFFLINE=1
-
-
-#RUN python -c "from sentence_transformers import SentenceTransformer; \
-#    SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2').save('/app/rag_app/app/models/embedding')"
+    TRANSFORMERS_OFFLINE=1 \
+    SF_SID_FILE=/etc/sfdc/sid.txt
 
 
 # Expose Flask/Gunicorn port
 EXPOSE 5000
 
 # Run app with Gunicorn (using run.py as entrypoint)
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--timeout", "300", "--preload","rag_app.run:app"]
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--timeout", "900", "--preload","rag_app.run:app"]

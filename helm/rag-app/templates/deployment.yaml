@@ -2,6 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Release.Name }}-rag
+  labels:
+    app: {{ .Release.Name }}-rag
+    {{- include "hpe-ezua.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -11,7 +14,24 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}-rag
+        {{- include "hpe-ezua.labels" . | nindent 8 }}
     spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+          command:
+            - sh
+            - -c
+            - |
+              {{- if .Values.postgresql.enabled }}
+              until nc -z {{ .Release.Name }}-postgres {{ .Values.env.DB_PORT }}; do
+              {{- else }}
+              until nc -z {{ .Values.env.DB_HOST }} {{ .Values.env.DB_PORT }}; do
+              {{- end }}
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready"
       containers:
         - name: rag
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -19,11 +39,99 @@ spec:
           ports:
             - containerPort: 5000
           env:
-            - name: POSTGRES_HOST
-              value: {{ .Values.env.POSTGRES_HOST | quote }}
-            - name: POSTGRES_DB
-              value: {{ .Values.env.POSTGRES_DB | quote }}
-            - name: POSTGRES_USER
-              value: {{ .Values.env.POSTGRES_USER | quote }}
-            - name: POSTGRES_PASSWORD
-              value: {{ .Values.env.POSTGRES_PASSWORD | quote }}
+            # Database - auto-wired to deployed Postgres if enabled
+            - name: DB_HOST
+              value: "{{ if .Values.postgresql.enabled }}{{ .Release.Name }}-postgres{{ else }}{{ .Values.env.DB_HOST }}{{ end }}"
+            - name: DB_PORT
+              value: {{ .Values.env.DB_PORT | quote }}
+            - name: DB_NAME
+              value: {{ .Values.env.DB_NAME | quote }}
+            - name: DB_USER
+              value: {{ .Values.env.DB_USER | quote }}
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db-secret
+                  key: DB_PASS
+            # Models
+            - name: MODEL_PATH
+              value: {{ .Values.env.MODEL_PATH | quote }}
+            - name: EMBEDDING_MODEL
+              value: {{ .Values.env.EMBEDDING_MODEL | quote }}
+            # SFDC
+            - name: SFDC_ENABLED
+              value: {{ .Values.env.SFDC_ENABLED | quote }}
+            - name: SF_URL
+              value: {{ .Values.env.SF_URL | quote }}
+            - name: SFDC_PRODUCT_QUEUE
+              value: {{ .Values.env.SFDC_PRODUCT_QUEUE | quote }}
+            - name: SFDC_PRODUCT_LINE
+              value: {{ .Values.env.SFDC_PRODUCT_LINE | quote }}
+            - name: SF_SID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SF_SID
+                  optional: true
+            - name: SFDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SFDC_CLIENT_ID
+                  optional: true
+            - name: SFDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SFDC_CLIENT_SECRET
+                  optional: true
+            - name: SFDC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SFDC_USERNAME
+                  optional: true
+            - name: SFDC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SFDC_PASSWORD
+                  optional: true
+            - name: SFDC_SECURITY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SFDC_SECURITY_TOKEN
+                  optional: true
+            # Platform-agnostic SID file path (mounted from Secret)
+            - name: SF_SID_FILE
+              value: "/etc/sfdc/sid.txt"
+            {{- if .Values.proxy }}
+            # HTTP Proxy for outbound access
+            {{- if .Values.proxy.httpProxy }}
+            - name: HTTP_PROXY
+              value: {{ .Values.proxy.httpProxy | quote }}
+            {{- end }}
+            {{- if .Values.proxy.httpsProxy }}
+            - name: HTTPS_PROXY
+              value: {{ .Values.proxy.httpsProxy | quote }}
+            {{- end }}
+            {{- if .Values.proxy.noProxy }}
+            - name: NO_PROXY
+              value: "{{ .Values.proxy.noProxy }},{{ .Release.Name }}-postgres"
+            {{- end }}
+            {{- end }}
+          volumeMounts:
+            - name: sfdc-sid
+              mountPath: /etc/sfdc
+              readOnly: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: sfdc-sid
+          secret:
+            secretName: {{ .Release.Name }}-sfdc-secret
+            items:
+              - key: SF_SID
+                path: sid.txt
+            optional: true

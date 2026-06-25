@@ -362,7 +362,7 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
     results2 = db.session.execute(sql2, {
         "src": source_file,
         "query_vec": query_vec,
-        "top_k": top_k * 2
+        "top_k": top_k
     }).fetchall()
 
     chunks = [r[0] for r in results2]
@@ -485,38 +485,51 @@ def llm_answer(context_chunks, question):
     llama = current_app.llama
     #context = "".join(context_chunks)
     context = clean_context("".join(context_chunks))
+
+    # Truncate context to fit within model's context window
+    max_chars = Config.MAX_CONTEXT_CHARS
+    if len(context) > max_chars:
+        context = context[:max_chars]
+        print(f"[WARN] Context truncated to {max_chars} chars")
+
     print("Question:", question)
     print("Context retrieved:", context)
 
-    prompt = f"""
-You are a Kubernetes platform assistant for HPE Ezmeral.
+    system_prompt = """You are a Kubernetes platform assistant for HPE Ezmeral.
 
-Use only CLI commands and instructions found **exactly** in the context below.
-Ensure numbered steps are consistent and not appended multiple times.
-Make sure each bash block starts and ends properly.
-Ensure the output do not have duplicated instructions.
-Do not invent commands that are not in the context.
-Provide a clear, **numbered** list of steps in order.
-Each step must be on a new line and contain any commands inside fenced ```bash code blocks.
+CRITICAL RULES:
+1. If the context below does NOT contain information directly relevant to the question, you MUST respond ONLY with:
+   "I don't have enough information in the knowledge base to answer this question. Please refine your search or check the HPE Ezmeral documentation at https://support.hpe.com."
+2. Do NOT make up, guess, or fabricate any steps, commands, or instructions.
+3. Use only CLI commands and instructions found exactly in the context below.
+4. Do not invent commands that are not in the context.
+5. Provide a clear, numbered list of steps in order.
+6. Each step must be on a new line and contain any commands inside fenced ```bash code blocks."""
 
-### Context:
+    user_prompt = f"""### Context:
 {context}
 
 ### Question:
 {question}
 
----
-Numbered Steps:
-"""
+If the context does not contain relevant information to answer the question, say so. Otherwise provide numbered steps:"""
 
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
 
-    out = llama(
-        prompt=prompt,
+    out = llama.create_chat_completion(
+        messages=messages,
         max_tokens=2048,
-        stop=["<END>"]
+        temperature=0.2,
+        top_p=0.9,
+        repeat_penalty=1.2,
     )
 
+    usage = out.get("usage", {})
+    print(f"[TOKEN USAGE] Prompt tokens: {usage.get('prompt_tokens', 'N/A')}, "
+          f"Completion tokens: {usage.get('completion_tokens', 'N/A')}, "
+          f"Total tokens: {usage.get('total_tokens', 'N/A')}")
 
-    #pdb.set_trace()
-
-    return out["choices"][0]["text"].strip()
+    return out["choices"][0]["message"]["content"].strip()

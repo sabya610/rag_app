@@ -1,0 +1,265 @@
+
+PARASPARAM 2026 — ABSTRACT SUBMISSION
+(Copy this content into the official Parasparam template - use prescribed fonts/styles)
+================================================================================
+
+
+Paper Title:
+    Hybrid RAG Knowledge Assistant for HPE Ezmeral Support: Dual-Source
+    Retrieval-Augmented Generation with Anti-Hallucination Guardrails
+
+Author(s):
+    Sabyasachi Mallik
+
+HPE Entity:
+    Hybrid Cloud Customer Services SSD
+
+Email:
+    sabyasachi.mallik@hpe.com
+
+Theme:
+    A.I. (Generative AI / AIOps)
+
+
+================================================================================
+ABSTRACT
+================================================================================
+
+This paper presents the design and implementation of a Hybrid Retrieval-Augmented
+Generation (RAG) Knowledge Assistant built to accelerate HPE Ezmeral Runtime
+Enterprise support resolution. The system combines two knowledge sources — offline
+PDF knowledge bases and live Salesforce (SFDC) Knowledge Articles — into a
+unified, switchable retrieval pipeline backed by a locally-hosted quantized LLaMA 2
+7B model. Unlike conventional RAG systems that rely on a single retrieval source,
+our solution introduces a dual-source architecture where support engineers can
+query PDF-only, SFDC-only, or combined modes in real-time, with product-line
+filtering to ensure domain-relevant results. A multi-layer anti-hallucination
+framework prevents the LLM from fabricating commands or procedures not present in
+the retrieved context, a critical requirement for enterprise support where
+incorrect instructions can cause production outages. The system is fully
+containerized and deployed on Kubernetes using Helm charts, with a one-command
+deployment script for rapid provisioning across multiple clusters. A working POC
+is deployed and actively used for HPE Ezmeral support operations.
+
+
+================================================================================
+PROBLEM STATEMENT
+================================================================================
+
+HPE Ezmeral Runtime Enterprise support engineers face several challenges when
+resolving customer issues:
+
+1. Fragmented Knowledge: Troubleshooting procedures are scattered across PDF
+   documents (internal KBs, runbooks), Salesforce Knowledge Articles, and tribal
+   knowledge. Engineers must manually search multiple systems to find relevant
+   information, increasing Mean Time to Resolution (MTTR).
+
+2. Knowledge Article Overload: Salesforce contains thousands of Knowledge Articles
+   across multiple HPE product lines (Data Fabric, Container Platform, Unified
+   Analytics). Without precise filtering, engineers waste time sifting through
+   irrelevant articles from other product families.
+
+3. LLM Hallucination Risk: Generic LLM-based assistants, when applied to
+   technical support, frequently fabricate CLI commands, service names, and
+   procedures that do not exist. In a production Kubernetes environment, executing
+   hallucinated commands (e.g., fabricated systemctl service names, non-existent
+   CLI flags) can cause cluster-wide outages — making accuracy a non-negotiable
+   requirement.
+
+4. Deployment Complexity: Support teams operate across geographically distributed
+   clusters. Deploying an AI-assisted tool consistently across multiple
+   environments requires automation and standardization.
+
+This matters to HPE because faster, more accurate support resolution directly
+improves customer satisfaction (NPS), reduces escalation rates, and enables
+support engineers to handle higher case volumes.
+
+
+================================================================================
+OUR SOLUTION
+================================================================================
+
+We designed and built a Hybrid RAG Knowledge Assistant with the following
+technical innovations:
+
+1. Dual-Source Switchable Retrieval Pipeline
+
+   The system provides three query modes — PDF+SFDC (combined), PDF Only, and
+   SFDC Only — selectable per query via the web UI. The PDF path uses pgvector
+   (PostgreSQL with vector extension) for semantic similarity search over
+   pre-embedded document chunks. The SFDC path performs live SOSL/SOQL queries
+   against Salesforce Knowledge Articles with product-queue and product-line
+   filtering (e.g., GSD_KM_Issue_Solution_Product_Queue__c = 'HPE Ezmeral' AND
+   Product_Line__c = 'CONT PLT SW (RM)'), ensuring only HPE Ezmeral Container
+   Platform articles are returned — excluding Data Fabric and other product
+   families. Both sources feed into a unified context assembly before LLM
+   inference.
+
+2. Multi-Layer Anti-Hallucination Framework
+
+   Rather than relying solely on prompt engineering, we employ multiple layers:
+   - Extractive-first approach: The system prioritizes extracting exact steps and
+     commands from the retrieved context before invoking the LLM.
+   - Strict prompt guardrails: The LLM prompt includes explicit instructions to
+     refuse answering when context is irrelevant, and to never fabricate commands.
+   - Low-temperature inference (0.2) with repeat_penalty (1.2) to minimize
+     creative deviation.
+   - Context deduplication and cleaning: A 7-stage PDF text cleaning pipeline
+     (unicode normalization, hyphenation repair, OCR artifact removal, token-level
+     n-gram deduplication, code block repair) ensures the LLM receives clean,
+     unambiguous context.
+
+3. Advanced PDF Ingestion Pipeline
+
+   PDFs undergo: text extraction (pdfminer) → line-level cleaning and merging →
+   section-aware chunking (respecting ## headers and ```bash code blocks) →
+   overlapping window assembly → sentence-transformer embedding
+   (all-MiniLM-L6-v2, 384-dim) → pgvector storage. This produces high-quality
+   embeddings that improve retrieval precision for technical content containing
+   CLI commands and configuration snippets.
+
+4. Fully Offline LLM Deployment
+
+   The LLaMA 2 7B model (Q4_K_M quantized, ~4GB) runs entirely within the
+   Kubernetes pod via llama-cpp-python — no external API calls, no data leaving
+   the cluster. This addresses data sovereignty concerns for sensitive support
+   case information.
+
+5. One-Command Kubernetes Deployment
+
+   A Helm-packaged chart with an automated deployment script (deploy_rag_app.sh)
+   handles namespace creation, Helm install from .tgz package, proxy
+   configuration, SFDC secret management, Gunicorn timeout tuning, and
+   port-forwarding — enabling deployment to a new cluster in under 10 minutes.
+
+   The idea originated from the author's daily experience with HPE Ezmeral
+   support, where the need for a fast, accurate, self-hosted knowledge tool was
+   evident. The entire system — architecture, code, prompt engineering, deployment
+   automation — was designed and implemented by the author.
+
+
+================================================================================
+EVIDENCE THE SOLUTION WORKS
+================================================================================
+
+The system is deployed as a working POC on an HPE Ezmeral Kubernetes cluster
+(K8s v1.30.14, Rocky Linux 8.10) and has been validated with real support
+scenarios:
+
+- Test Case: "What are the steps for manual restart ERE?" — With SFDC-only mode,
+  the system previously returned irrelevant articles (rollback failures,
+  vulnerability mitigations). After uploading the correct PDF
+  (HPE_Manually_Restarting_ERE_Services.pdf), the combined PDF+SFDC mode
+  correctly extracted the 7-step restart procedure including exact systemctl
+  commands (bds-monitoring, bds-worker, bds-controller) and the suspendha
+  pre-step.
+
+- Anti-Hallucination Validation: Before guardrails, the LLM fabricated 12 steps
+  with non-existent commands like "sudo bdconfig --hainfo", "sudo service httpd
+  restart", "sudo systemctl restart ha-cluster". After implementing the
+  anti-hallucination framework, the LLM correctly responds with "I don't have
+  enough information in the knowledge base" when context is irrelevant.
+
+- Product-Line Filtering: The /sfdc/status endpoint confirms active filtering
+  (product_filter: "HPE Ezmeral", product_line_filter: "CONT PLT SW (RM)"),
+  eliminating cross-product contamination from Data Fabric articles.
+
+- Token Budget: Analysis shows typical queries use ~1,962 tokens (212 template +
+  1,750 context) out of the 4,096 context window, leaving 2,134 tokens for
+  response generation — well within limits.
+
+[Screenshots of the working application UI, SFDC status endpoint, and correct
+ answer output can be included in the final paper.]
+
+
+================================================================================
+COMPETITIVE APPROACHES
+================================================================================
+
+| Approach                    | Advantages              | Disadvantages                  |
+|-----------------------------|-------------------------|--------------------------------|
+| ChatGPT/Copilot (cloud)    | High quality, easy      | Data leaves HPE network;       |
+|                             |                         | no SFDC integration;           |
+|                             |                         | hallucination risk             |
+| HPE GreenLake AI (PCAI)    | Enterprise-grade GPU    | Requires GPU infrastructure;   |
+|                             | inference               | complex setup; not targeted    |
+|                             |                         | at support workflows           |
+| Manual SFDC Search          | Accurate (human)        | Slow; no semantic search;      |
+|                             |                         | no cross-source correlation    |
+| Generic RAG (LangChain)    | Flexible framework      | Single-source only; no         |
+|                             |                         | SFDC integration; no           |
+|                             |                         | product-line filtering         |
+
+Our solution uniquely combines: (a) dual-source live retrieval with product
+filtering, (b) fully offline LLM — no data exfiltration, (c) anti-hallucination
+guardrails purpose-built for CLI/infrastructure support, and (d) Helm-packaged
+deployment for any K8s cluster.
+
+
+================================================================================
+CURRENT STATUS
+================================================================================
+
+The solution is a fully functional POC deployed on an HPE internal Kubernetes
+cluster. It is actively used for HPE Ezmeral Runtime Enterprise support
+knowledge retrieval. The Docker image is published to Docker Hub (sabya610/
+rag-app:v2) and the Helm chart is packaged (rag-app-0.2.0.tgz) for portable
+deployment. The deployment script has been validated for rapid provisioning on
+new clusters.
+
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Multi-Model Support: Integrate larger models (LLaMA 3, Mistral 7B) and GPU-
+   accelerated inference via HPE Ezmeral PCAI/KServe for improved answer quality.
+
+2. Automated SID Refresh: Replace manual Salesforce Session ID management with
+   OAuth2 Connected App flow for unattended operation.
+
+3. Feedback Loop: Add user rating (thumbs up/down) on answers to build a
+   reinforcement signal for retrieval ranking improvement.
+
+4. Case Context Integration: Extend beyond Knowledge Articles to ingest case
+   comments and resolution notes from Salesforce Cases, enabling learning from
+   historical resolutions.
+
+5. Multi-Tenant Deployment: Parameterize product-line filtering to support
+   other HPE product families (GreenLake, Aruba, Storage) with the same
+   infrastructure.
+
+6. Embedding Model Fine-Tuning: Fine-tune the embedding model on HPE-specific
+   technical vocabulary to improve retrieval precision for domain terminology.
+
+
+================================================================================
+ACKNOWLEDGEMENTS
+================================================================================
+
+[Add acknowledgements as appropriate — e.g., team members, managers, or
+ collaborators who supported the work.]
+
+
+================================================================================
+REFERENCES
+================================================================================
+
+[1] P. Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive
+    NLP Tasks," NeurIPS 2020.
+
+[2] Meta AI, "LLaMA 2: Open Foundation and Fine-Tuned Chat Models," 2023.
+    https://ai.meta.com/llama/
+
+[3] llama-cpp-python: Python bindings for llama.cpp.
+    https://github.com/abetlen/llama-cpp-python
+
+[4] pgvector: Open-source vector similarity search for PostgreSQL.
+    https://github.com/pgvector/pgvector
+
+[5] Sentence-Transformers: all-MiniLM-L6-v2 embedding model.
+    https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+
+[6] Salesforce SOSL/SOQL Knowledge Article Search API.
+    https://developer.salesforce.com/docs/atlas.en-us.knowledge_dev.meta
+

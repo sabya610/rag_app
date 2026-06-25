@@ -1,0 +1,153 @@
+
+PARASPARAM 2026 — BRIGHTIDEA FORM SUBMISSION GUIDE
+====================================================
+Copy-paste each section into the corresponding form field.
+
+
+================================================================================
+FIELD 1: Title (max 100 characters)
+================================================================================
+
+EzAssist: AI-Powered Knowledge Assistant for Faster Support Issue Resolution
+
+(76 characters)
+
+Alternative (if above is too long):
+SupportGPT for HPE Ezmeral: KB Search to Instant Troubleshooting Guidance
+
+
+================================================================================
+FIELD 2: Submitter (Self or Team)
+================================================================================
+
+Yourself
+
+
+================================================================================
+FIELD 3: Upload your Abstract (PDF)
+================================================================================
+
+Upload: parasparam_abstract_v2.txt → convert to PDF first
+(See separate file: parasparam_abstract_v2.txt)
+
+
+================================================================================
+FIELD 4: Category
+================================================================================
+
+A.I. (Artificial Intelligence)
+
+
+================================================================================
+FIELD 5: Short description — how the idea relates to the category and
+         its relevance to HPE Business (max 200 words)
+================================================================================
+
+EzAssist is an AI-powered Knowledge Assistant that transforms how HPE Ezmeral
+support engineers find and apply troubleshooting information.
+
+Today, engineers spend significant time searching across multiple Knowledge Base
+(KB) articles, PDF documents, troubleshooting guides, and Salesforce records to
+diagnose customer issues. This increases Mean Time to Resolution (MTTR) and
+impacts customer satisfaction.
+
+EzAssist provides a single-stop, natural language search interface where
+engineers ask a question and receive consolidated, step-by-step troubleshooting
+guidance drawn from multiple knowledge sources. The system uses a Retrieval-
+Augmented Generation (RAG) architecture with a locally-hosted LLaMA 2 7B model,
+semantic search via PostgreSQL+pgvector, and a multi-stage PDF ingestion
+pipeline to deliver context-aware answers grounded exclusively in approved
+support documentation.
+
+This directly impacts HPE's support business by:
+- Reducing MTTR through instant access to relevant procedures
+- Improving engineer productivity by eliminating multi-system searches
+- Accelerating onboarding of new support engineers
+- Ensuring consistent troubleshooting guidance across global teams
+- Continuous knowledge expansion through PDF document upload
+
+(~160 words)
+
+
+================================================================================
+FIELD 6: Status of the Idea
+================================================================================
+
+[x] I have a Proof of Concept in place
+
+
+================================================================================
+FIELD 7: How have you used AI in development of Idea/Submission?
+================================================================================
+
+AI is both the core of the solution and was used in its development:
+
+IN THE SOLUTION:
+- LLaMA 2 7B (quantized) runs entirely within the Kubernetes pod as the
+  generative AI engine that synthesizes answers from retrieved knowledge
+- Sentence-Transformers (all-MiniLM-L6-v2) provides AI-powered semantic
+  embeddings for intelligent document search — going beyond keyword matching
+  to understand the meaning of support queries
+- Retrieval-Augmented Generation (RAG) architecture ensures the AI only
+  answers from approved documentation, preventing fabricated responses
+
+IN DEVELOPMENT:
+- GitHub Copilot was used extensively for code development, debugging,
+  prompt engineering, and deployment automation
+- AI-assisted analysis of token usage patterns to optimize the context
+  window for the LLM
+- AI-assisted drafting and refinement of the anti-hallucination prompt
+  framework that ensures answer reliability
+
+
+================================================================================
+FIELD 8: Has your idea been submitted in any HPE or outside conferences
+         earlier? (max 400 words)
+================================================================================
+
+Not applicable. This idea has not been submitted in any previous edition of
+Parasparam or any other HPE or external conference.
+
+
+================================================================================
+FIELD 9: How would you describe your Innovation type?
+================================================================================
+
+[x] Integration Solution (Integrate different technologies to build a solution)
+
+Rationale: EzAssist integrates multiple technologies — a quantized LLM (LLaMA 2),
+vector database (PostgreSQL + pgvector), semantic embeddings (sentence-
+transformers), Salesforce Knowledge Article retrieval, PDF document ingestion,
+and Kubernetes deployment — into a unified solution purpose-built for HPE
+support workflows.
+
+
+================================================================================
+FIELD 10: Author Checklist & FAQ
+================================================================================
+
+[x] Yes
+
+
+================================================================================
+FIELD 11: Plagiarism
+================================================================================
+
+[x] I confirm that this submission is my original work and does not contain
+    plagiarized content.
+
+
+================================================================================
+FIELD 12: Expertise Required (Optional)
+================================================================================
+
+Generative AI, RAG, Kubernetes, NLP, Support Engineering
+
+
+================================================================================
+FIELD 13: Tags (Optional)
+================================================================================
+
+AI, RAG, LLM, Knowledge Management, Support, HPE Ezmeral, Kubernetes,
+Natural Language Processing, Troubleshooting, Productivity
+

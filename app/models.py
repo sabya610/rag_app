@@ -23,6 +23,17 @@ class QAHist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.Text, nullable=False)
     answer = db.Column(db.Text, nullable=False)
+    source = db.Column(db.String, default="pdf")  # "pdf", "sfdc", "both"
+
+
+class SFDCArticle(db.Model):
+    """Tracks which SFDC Knowledge Articles have been ingested into the vector store."""
+    __tablename__ = "sfdc_articles"
+    id = db.Column(db.Integer, primary_key=True)
+    article_id = db.Column(db.String, unique=True, nullable=False)
+    article_number = db.Column(db.String)
+    title = db.Column(db.Text)
+    ingested_at = db.Column(db.DateTime, server_default=db.func.now())
 
 
 

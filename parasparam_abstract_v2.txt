@@ -1,0 +1,305 @@
+
+PARASPARAM 2026 — ABSTRACT (PDF SUBMISSION)
+================================================================================
+Copy into the official Parasparam Word template → Export as PDF → Upload
+Use prescribed fonts: Arial for headings, Times New Roman for body text
+Maximum 3 pages
+================================================================================
+
+
+PAPER TITLE:
+    EzAssist: AI-Powered Knowledge Assistant for Faster Support Issue Resolution
+
+AUTHOR(S):
+    Sabyasachi Mallik
+
+HPE ENTITY:
+    Hybrid Cloud Customer Services SSD
+
+EMAIL:
+    sabyasachi.mallik@hpe.com
+
+
+================================================================================
+ABSTRACT
+================================================================================
+
+EzAssist is an AI-powered Knowledge Assistant that transforms how HPE Ezmeral
+support engineers find and apply troubleshooting information. Instead of manually
+searching across multiple Knowledge Base (KB) articles, PDF documents, and
+Salesforce records, engineers can ask a question in natural language and receive
+consolidated, step-by-step troubleshooting guidance from a single interface.
+
+The system uses a Retrieval-Augmented Generation (RAG) architecture that combines
+a locally-hosted LLaMA 2 7B large language model with semantic search over
+PostgreSQL+pgvector to deliver context-aware answers grounded exclusively in
+approved support documentation. Engineers can also upload new PDF-based KB
+articles and troubleshooting guides, ensuring the knowledge base grows
+continuously. A working Proof of Concept is deployed and validated on an HPE
+Ezmeral Kubernetes cluster for HPE Ezmeral Runtime Enterprise support operations.
+
+
+================================================================================
+PROBLEM STATEMENT
+================================================================================
+
+Support Engineers spend a significant amount of time searching across multiple
+Knowledge Base (KB) articles, support documents, troubleshooting guides, release
+notes, and internal repositories to diagnose and resolve customer issues. This
+creates several challenges:
+
+1. Knowledge is Distributed Across Multiple Sources
+
+   Critical troubleshooting information is scattered across KB articles, PDF
+   documents, product manuals, support notes, and internal documentation.
+   Engineers often need to search multiple systems — Salesforce Knowledge,
+   internal wikis, PDF runbooks — before finding the required information.
+
+2. Increased Time to Resolution
+
+   A considerable portion of troubleshooting time is spent locating relevant
+   documentation rather than solving the customer's problem. This increases
+   Mean Time to Resolution (MTTR) and directly impacts customer satisfaction
+   and NPS scores.
+
+3. Knowledge Discovery Becomes Difficult
+
+   As the volume of support content grows, identifying the most relevant article
+   or procedure becomes increasingly challenging, especially for new engineers
+   or when handling unfamiliar product areas. Standard keyword searches often
+   return hundreds of results with limited relevance.
+
+4. Repeated Effort Across Support Teams
+
+   Different engineers frequently spend time searching for the same information
+   and recreating troubleshooting steps that already exist in documented
+   knowledge sources, leading to duplicated effort across global support teams.
+
+5. Limited Ability to Leverage New Knowledge
+
+   Newly created KB articles, field advisories, troubleshooting guides, and
+   customer-specific documents are difficult to consolidate into a single
+   searchable knowledge repository that all engineers can benefit from.
+
+
+================================================================================
+OUR SOLUTION
+================================================================================
+
+We developed EzAssist — a Hybrid RAG Knowledge Assistant that serves as a
+single-stop intelligent support companion for HPE Ezmeral Support teams.
+
+Instead of manually searching through hundreds of KB articles and documents,
+engineers simply ask a question in natural language and receive:
+
+  - Relevant troubleshooting steps extracted from matching KB articles
+  - Associated commands and procedures required for issue resolution
+  - Consolidated information from multiple knowledge sources (PDFs + Salesforce)
+  - Context-aware answers specific to the HPE Ezmeral product line
+
+The solution also enables support teams to upload new PDF-based KB articles,
+troubleshooting guides, and support documents into the knowledge repository
+through a web interface, ensuring that valuable knowledge is continuously
+available and searchable.
+
+
+TECHNICAL ARCHITECTURE
+
+The system is built on a Retrieval-Augmented Generation (RAG) architecture
+with the following key components:
+
+  LLM Engine — LLaMA 2 7B Chat (Q4_K_M quantized, ~4 GB GGUF format)
+    Runs entirely within the Kubernetes pod via llama-cpp-python (Python bindings
+    for llama.cpp). The model performs CPU-based inference with a 4,096-token
+    context window, temperature=0.2 for deterministic output, top_p=0.9,
+    and repeat_penalty=1.2 to prevent repetitive generation. No external API
+    calls are made — all data stays within the cluster, addressing data
+    sovereignty requirements for sensitive support case information.
+
+  Embedding Model — all-MiniLM-L6-v2 (Sentence-Transformers)
+    Generates 384-dimensional dense vector embeddings for both document chunks
+    and user queries. The model runs offline using pre-downloaded weights,
+    enabling semantic similarity matching that goes beyond keyword search
+    to understand the meaning of support queries (e.g., "how to restart
+    services" matches documentation about "restarting bds-controller").
+
+  Vector Database — PostgreSQL 15 + pgvector Extension
+    Stores document chunk embeddings in a PostgreSQL database with the pgvector
+    extension. Retrieval uses L2 distance-based nearest-neighbor search
+    (embedding <-> query_vec) to find the most semantically similar chunks.
+    The system performs a two-pass retrieval: first finding the top-k closest
+    chunks globally, then expanding retrieval within the same source document
+    to capture complete procedures. Document style is auto-detected (numbered
+    steps vs. KB-style Issue/Cause/Resolution) to optimize chunk ordering.
+
+  PDF Ingestion Pipeline
+    PDFs undergo a multi-stage processing pipeline:
+    (a) Text extraction using pdfminer
+    (b) Unicode normalization and line-level deduplication
+    (c) Hyphenation repair and wrapped-line merging
+    (d) N-gram repeat collapsing (handles OCR artifacts and copy-paste errors)
+    (e) Section-aware chunking that preserves ## headers and ```bash code blocks
+    (f) Overlapping window assembly for context continuity across chunk boundaries
+    (g) Sentence-transformer embedding and pgvector storage
+    The pipeline specifically handles CLI commands (kubectl, systemctl, helm,
+    bdconfig, etc.) by wrapping them in fenced code blocks, ensuring commands
+    are preserved exactly as documented.
+
+  Salesforce Knowledge Article Integration
+    Dual-method search using SOSL (full-text) and SOQL (LIKE-based fallback)
+    against Salesforce Knowledge Articles (Knowledge__kav). Articles are
+    filtered by product queue (HPE Ezmeral) and product line (CONT PLT SW).
+    Rich-text HTML article bodies are converted to clean text using html2text.
+    The Salesforce REST API client supports both Session ID authentication
+    (browser cookie) and OAuth2 password flow.
+
+  Answer Generation
+    Retrieved context chunks are cleaned (duplicate line removal, bash fence
+    repair, duplicate command block collapsing) before being assembled into an
+    LLM prompt. The prompt enforces strict grounding rules — the model must
+    use only commands and instructions found exactly in the retrieved context,
+    and must refuse to answer when the context does not contain relevant
+    information, preventing fabricated troubleshooting procedures.
+
+  Deployment
+    Fully containerized with Docker, deployed on Kubernetes using Helm charts.
+    The deployment includes an init container (wait-for-postgres), environment-
+    based configuration, Gunicorn WSGI server with --preload for model sharing
+    across requests, and an automated deployment script (deploy_rag_app.sh) for
+    rapid provisioning on new clusters.
+
+
+BUSINESS BENEFITS
+
+  - Faster issue diagnosis and troubleshooting
+  - Reduced Mean Time to Resolution (MTTR)
+  - Improved engineer productivity by eliminating multi-system searches
+  - Faster onboarding of new support engineers
+  - Consistent troubleshooting guidance across global teams
+  - Better utilization of existing knowledge assets
+  - Single-stop access to institutional support knowledge
+
+
+================================================================================
+EVIDENCE THE SOLUTION WORKS
+================================================================================
+
+The system is deployed as a working POC on an HPE Ezmeral Kubernetes cluster
+(K8s v1.30.14, Rocky Linux 8.10) and has been validated with real support
+scenarios:
+
+  Scenario 1 — "What are the steps for manual restart ERE?"
+    Using the PDF+SFDC combined mode, the system correctly retrieved the
+    procedure from the uploaded KB document
+    (HPE_Manually_Restarting_ERE_Services.pdf) and presented the 7-step
+    restart procedure including exact systemctl commands (bds-monitoring,
+    bds-worker, bds-controller) and the required suspendha pre-step.
+
+  Scenario 2 — Answer Reliability
+    When queried about topics not covered in the knowledge base, the system
+    correctly responds with "I don't have enough information in the knowledge
+    base to answer this question" instead of generating plausible-sounding
+    but incorrect procedures — a critical safety requirement for production
+    support.
+
+  Scenario 3 — Product-Line Filtering
+    The /sfdc/status endpoint confirms active filtering (product_filter:
+    "HPE Ezmeral", product_line_filter: "CONT PLT SW (RM)"), ensuring that
+    only relevant Container Platform articles are returned and articles from
+    other HPE product families (Data Fabric, Unified Analytics) are excluded.
+
+  Token Budget Analysis
+    Typical queries use ~1,962 tokens (212 template + 1,750 context) out of
+    the 4,096 context window, leaving 2,134 tokens for response generation —
+    comfortably within limits for detailed step-by-step answers.
+
+
+================================================================================
+COMPETITIVE APPROACHES
+================================================================================
+
+  Generic Cloud LLMs (ChatGPT, Copilot)
+    High quality generation, but data leaves the HPE network; no integration
+    with Salesforce KB articles; hallucination risk for domain-specific
+    CLI commands; no product-line filtering.
+
+  HPE GreenLake AI / PCAI
+    Enterprise-grade GPU inference, but requires dedicated GPU infrastructure;
+    complex setup; not purpose-built for support troubleshooting workflows.
+
+  Manual Salesforce Search
+    Accurate when engineers know what to look for, but slow; no semantic
+    search capability; no cross-source correlation; no consolidation of
+    information from multiple articles and PDF documents.
+
+  Generic RAG Frameworks (LangChain-based)
+    Flexible development framework, but typically single-source only; no
+    built-in Salesforce Knowledge integration; no product-line filtering;
+    additional development required for CLI-aware PDF processing.
+
+  EzAssist uniquely combines: (a) natural language search across both PDFs
+  and live Salesforce Knowledge Articles, (b) fully offline LLM with no data
+  leaving the cluster, (c) answers grounded exclusively in approved
+  documentation, (d) continuous knowledge expansion through PDF upload, and
+  (e) Helm-packaged deployment for any Kubernetes cluster.
+
+
+================================================================================
+CURRENT STATUS
+================================================================================
+
+The solution is a fully functional Proof of Concept deployed on an HPE internal
+Kubernetes cluster. It is actively used for HPE Ezmeral Runtime Enterprise
+support knowledge retrieval. The Docker image is published (sabya610/rag-app:v2),
+the Helm chart is packaged (rag-app-0.2.0.tgz), and the automated deployment
+script has been validated for rapid provisioning on new clusters. The web
+interface provides three views: Q&A (with PDF/SFDC/Both source selection),
+PDF Upload, and Query History.
+
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. GPU-Accelerated Inference: Integrate with HPE Ezmeral PCAI/KServe for
+   GPU-based LLM inference to reduce response times from minutes to seconds.
+
+2. Automated Salesforce Authentication: Replace manual Session ID management
+   with OAuth2 Connected App flow for unattended, continuous operation.
+
+3. User Feedback Loop: Add answer rating (thumbs up/down) to build a
+   reinforcement signal for retrieval ranking improvement over time.
+
+4. Case History Integration: Extend beyond Knowledge Articles to ingest case
+   comments and resolution notes from Salesforce Cases, enabling the system
+   to learn from historical support resolutions.
+
+5. Multi-Product Support: Parameterize product-line filtering to support
+   other HPE product families (GreenLake, Aruba, Storage) using the same
+   infrastructure.
+
+6. Fine-Tuned Embeddings: Fine-tune the embedding model on HPE-specific
+   technical vocabulary to improve retrieval precision for domain terminology
+   (e.g., "ERE", "bds-controller", "ezfab").
+
+
+================================================================================
+ACKNOWLEDGEMENTS
+================================================================================
+
+[Add acknowledgements as appropriate]
+
+
+================================================================================
+REFERENCES
+================================================================================
+
+[1] P. Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive
+    NLP Tasks," NeurIPS 2020.
+[2] Meta AI, "LLaMA 2: Open Foundation and Fine-Tuned Chat Models," 2023.
+[3] llama-cpp-python — https://github.com/abetlen/llama-cpp-python
+[4] pgvector — https://github.com/pgvector/pgvector
+[5] Sentence-Transformers (all-MiniLM-L6-v2) —
+    https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+[6] pdfminer.six — https://github.com/pdfminer/pdfminer.six
+

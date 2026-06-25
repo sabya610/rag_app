@@ -3,10 +3,12 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-env
 data:
-  .env: |
-    POSTGRES_HOST={{ .Values.env.POSTGRES_HOST }}
-    POSTGRES_DB={{ .Values.env.POSTGRES_DB }}
-    POSTGRES_USER={{ .Values.env.POSTGRES_USER }}
-    POSTGRES_DB={{ .Value.env.POSTGRES_DB }}
-
+  DB_HOST: {{ .Values.env.DB_HOST | quote }}
+  DB_PORT: {{ .Values.env.DB_PORT | quote }}
+  DB_NAME: {{ .Values.env.DB_NAME | quote }}
+  DB_USER: {{ .Values.env.DB_USER | quote }}
+  MODEL_PATH: {{ .Values.env.MODEL_PATH | quote }}
+  EMBEDDING_MODEL: {{ .Values.env.EMBEDDING_MODEL | quote }}
+  SFDC_ENABLED: {{ .Values.env.SFDC_ENABLED | quote }}
+  SF_URL: {{ .Values.env.SF_URL | quote }}
 

@@ -1,125 +1,414 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>KB PDF RAG Assistant</title>
+    <title>HPE Ezmeral RAG Knowledge Assistant</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 50px;
-            background: #f7f7f7;
+            margin: 0;
+            padding: 20px;
+            background: #f5f6fa;
+            color: #333;
         }
         .container {
-            max-width: 800px;
+            max-width: 960px;
             margin: auto;
             background: white;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 0 10px #ccc;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
-        input[type=text], input[type=file] {
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #01a982;
+            padding-bottom: 15px;
+        }
+        .header h1 {
+            color: #01a982;
+            margin: 0;
+            font-size: 24px;
+        }
+        .sfdc-status {
+            font-size: 13px;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+        .sfdc-status.connected { background: #d4edda; color: #155724; }
+        .sfdc-status.disconnected { background: #f8d7da; color: #721c24; }
+        .sfdc-status.checking { background: #fff3cd; color: #856404; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 10px 24px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.2s;
+        }
+        .tab-btn:first-child { border-radius: 6px 0 0 6px; }
+        .tab-btn:last-child { border-radius: 0 6px 6px 0; }
+        .tab-btn.active {
+            background: #01a982;
+            color: white;
+            border-color: #01a982;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Forms */
+        input[type=text], input[type=file], select {
             width: 100%;
             padding: 12px;
-            font-size: 16px;
+            font-size: 15px;
+            margin-top: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        button, .btn {
+            margin-top: 10px;
+            padding: 10px 24px;
+            font-size: 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn-primary { background: #01a982; color: white; }
+        .btn-primary:hover { background: #018a6a; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #565e64; }
+        .btn-sm { padding: 6px 14px; font-size: 13px; }
+
+        /* Source selector */
+        .source-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
             margin-top: 10px;
         }
-        button {
-            margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
+        .source-row label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            cursor: pointer;
         }
+
+        /* Answer */
         .answer {
             margin-top: 20px;
             padding: 15px;
             background: #e0f7fa;
-            border-left: 4px solid #00796b;
+            border-left: 4px solid #01a982;
+            border-radius: 4px;
         }
         .answer pre {
             background: #f0f0f0;
-            border-left: 4px solid #00796b;
+            border-left: 4px solid #01a982;
             padding: 10px;
             border-radius: 5px;
             overflow-x: auto;
         }
-                .bash-block {
-                        background: #272822 !important;
-                        color: #f8f8f2 !important;
-                        font-family: monospace;
-                        padding: 10px;
-                        border-radius: 6px;
-                        white-space: pre-wrap;
-                        margin: 10px 0;
-                        border-left: 4px solid #00796b;
-                }
+        .bash-block {
+            background: #272822 !important;
+            color: #f8f8f2 !important;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            margin: 10px 0;
+            border-left: 4px solid #01a982;
+        }
+        .yaml-block {
+            background: #002b36 !important;
+            color: #93a1a1 !important;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            margin: 10px 0;
+            border-left: 4px solid #01a982;
+        }
+        .answer p { margin: 5px 0; }
+        .answer strong { color: #01a982; }
+        .answer h4 { color: #01a982; margin-bottom: 5px; }
+        .answer code { font-family: monospace; }
 
-                .yaml-block {
-                        background: #002b36 !important;
-                        color: #93a1a1 !important;
-                        font-family: monospace;
-                        padding: 10px;
-                        border-radius: 6px;
-                        white-space: pre-wrap;
-                        margin: 10px 0;
-                        border-left: 4px solid #00796b;
-                }
-                .answer p {
-                        margin: 5px 0;
-                }
-                .answer strong {
-                        color: #00796b;
-                }
-        .answer h4 {
-            color: #00796b;
-            margin-bottom: 5px;
-        }
-        .answer code {
-           font-family: monospace;
-        }
         #loading {
             margin-top: 20px;
             font-style: italic;
             color: #666;
         }
+
+        /* SFDC Articles Table */
+        .article-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+        .article-table th {
+            background: #01a982;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+        .article-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .article-table tr:hover { background: #f0faf7; }
+
         .section-divider {
             margin-top: 30px;
             border-top: 1px solid #ddd;
             padding-top: 20px;
         }
+        .nav-links {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .nav-links a {
+            color: #01a982;
+            text-decoration: none;
+            margin-right: 20px;
+        }
+        .nav-links a:hover { text-decoration: underline; }
+        .msg { padding: 10px; margin-top: 10px; border-radius: 4px; font-size: 14px; }
+        .msg-success { background: #d4edda; color: #155724; }
+        .msg-error { background: #f8d7da; color: #721c24; }
+        .msg-info { background: #d1ecf1; color: #0c5460; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Ask Your Question</h1>
-        <form method="post" action="/">
-            <input type="text" name="question" placeholder="Enter your question here" required>
-            <button type="submit">Submit</button>
-        </form>
+        <!-- Header -->
+        <div class="header">
+            <h1>HPE Ezmeral RAG Knowledge Assistant</h1>
+            {% if sfdc_available %}
+            <span id="sfdc-badge" class="sfdc-status checking">SFDC: checking...</span>
+            {% else %}
+            <span class="sfdc-status disconnected">SFDC: not configured</span>
+            {% endif %}
+        </div>
 
-        <div id="loading" style="display:none;"> Thinking...</div>
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('ask')">Ask a Question</button>
+            <button class="tab-btn" onclick="switchTab('sfdc')">SFDC Knowledge Articles</button>
+            <button class="tab-btn" onclick="switchTab('upload')">Upload PDF</button>
+        </div>
 
-                {% if answer %}
-                        <div class="answer">
-                                <h3>Response:</h3>
-                                <div style="white-space: pre-wrap;">{{ answer | safe }}</div>
-                        </div>
-                {% endif %}
+        <!-- Tab 1: Ask Question -->
+        <div id="tab-ask" class="tab-content active">
+            <form method="post" action="/" id="ask-form">
+                <input type="text" name="question" placeholder="Ask about HPE Ezmeral, Kubernetes, troubleshooting..." required>
 
+                <div class="source-row">
+                    <strong>Source:</strong>
+                    <label><input type="radio" name="source" value="both" checked {% if not sfdc_available %}disabled{% endif %}> PDF + SFDC</label>
+                    <label><input type="radio" name="source" value="pdf"> PDF Only</label>
+                    <label><input type="radio" name="source" value="sfdc" {% if not sfdc_available %}disabled{% endif %}> SFDC Only</label>
+                </div>
 
-        <div class="section-divider">
-            <h2> Upload New PDF(s) </h2>
+                <button type="submit" class="btn btn-primary">Ask</button>
+            </form>
+
+            <div id="loading" style="display:none;">Searching knowledge base...</div>
+
+            {% if answer %}
+            <div class="answer">
+                <h3>Response:</h3>
+                <div style="white-space: pre-wrap;">{{ answer | safe }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab 2: SFDC Knowledge Articles -->
+        <div id="tab-sfdc" class="tab-content">
+            <h2>Search SFDC Knowledge Articles</h2>
+            <p>Search for Knowledge Articles in Salesforce and optionally ingest them into the local vector store.</p>
+
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="sfdc-query" placeholder="Search keywords (e.g., Kubernetes certificate renewal)" style="flex:1">
+                <button class="btn btn-primary" onclick="searchSFDC()">Search</button>
+            </div>
+
+            <div id="sfdc-results"></div>
+            <div id="sfdc-msg"></div>
+        </div>
+
+        <!-- Tab 3: Upload PDF -->
+        <div id="tab-upload" class="tab-content">
+            <h2>Upload New PDF(s)</h2>
             <form method="post" action="/upload" enctype="multipart/form-data">
                 <input type="file" name="pdfs" accept="application/pdf" multiple required>
-                <button type="submit">Upload PDF</button>
+                <button type="submit" class="btn btn-primary">Upload PDF</button>
             </form>
         </div>
 
-        <script>
-            const allForms = document.querySelectorAll('form');
-            allForms.forEach(form => {
-                 form.addEventListener('submit', function () {
-                      document.getElementById('loading').style.display = 'block';
-                  });
-             })
-        </script>
+        <!-- Navigation -->
+        <div class="nav-links">
+            <a href="/history">View Q&A History</a>
+            {% if sfdc_available %}
+            <a href="#" onclick="reconnectSFDC(); return false;">Reconnect SFDC</a>
+            {% endif %}
+        </div>
     </div>
+
+    <script>
+        // ---- Tab Switching ----
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ---- Loading indicator ----
+        document.getElementById('ask-form').addEventListener('submit', function() {
+            document.getElementById('loading').style.display = 'block';
+        });
+
+        // ---- SFDC Status Check ----
+        {% if sfdc_available %}
+        fetch('/sfdc/status')
+            .then(r => r.json())
+            .then(data => {
+                const badge = document.getElementById('sfdc-badge');
+                if (data.connected) {
+                    badge.textContent = 'SFDC: connected';
+                    badge.className = 'sfdc-status connected';
+                } else {
+                    badge.textContent = 'SFDC: disconnected';
+                    badge.className = 'sfdc-status disconnected';
+                }
+            })
+            .catch(() => {
+                const badge = document.getElementById('sfdc-badge');
+                badge.textContent = 'SFDC: error';
+                badge.className = 'sfdc-status disconnected';
+            });
+        {% endif %}
+
+        // ---- SFDC Search ----
+        function searchSFDC() {
+            const query = document.getElementById('sfdc-query').value.trim();
+            if (!query) return;
+
+            const resultsDiv = document.getElementById('sfdc-results');
+            resultsDiv.innerHTML = '<p style="color:#666;font-style:italic;">Searching SFDC...</p>';
+
+            fetch('/sfdc/search', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({query: query})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    resultsDiv.innerHTML = '<div class="msg msg-error">' + data.error + '</div>';
+                    return;
+                }
+                if (!data.articles || data.articles.length === 0) {
+                    resultsDiv.innerHTML = '<div class="msg msg-info">No articles found.</div>';
+                    return;
+                }
+
+                let html = '<p><strong>' + data.count + ' article(s) found</strong></p>';
+                html += '<table class="article-table"><thead><tr>';
+                html += '<th><input type="checkbox" id="select-all" onchange="toggleAll(this)"></th>';
+                html += '<th>Article #</th><th>Title</th><th>Status</th><th>Modified</th>';
+                html += '</tr></thead><tbody>';
+
+                data.articles.forEach(a => {
+                    const modified = a.last_modified ? a.last_modified.substring(0, 10) : '';
+                    html += '<tr>';
+                    html += '<td><input type="checkbox" class="article-cb" value="' + a.id + '"></td>';
+                    html += '<td>' + (a.article_number || '') + '</td>';
+                    html += '<td>' + (a.title || '') + '</td>';
+                    html += '<td>' + (a.publish_status || '') + '</td>';
+                    html += '<td>' + modified + '</td>';
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                html += '<button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="ingestSelected()">Ingest Selected into Vector Store</button>';
+                resultsDiv.innerHTML = html;
+            })
+            .catch(err => {
+                resultsDiv.innerHTML = '<div class="msg msg-error">Search failed: ' + err + '</div>';
+            });
+        }
+
+        function toggleAll(source) {
+            document.querySelectorAll('.article-cb').forEach(cb => cb.checked = source.checked);
+        }
+
+        // ---- SFDC Ingest ----
+        function ingestSelected() {
+            const ids = Array.from(document.querySelectorAll('.article-cb:checked')).map(cb => cb.value);
+            if (ids.length === 0) {
+                document.getElementById('sfdc-msg').innerHTML = '<div class="msg msg-info">Select at least one article.</div>';
+                return;
+            }
+
+            document.getElementById('sfdc-msg').innerHTML = '<div class="msg msg-info">Ingesting ' + ids.length + ' article(s)...</div>';
+
+            fetch('/sfdc/ingest', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({article_ids: ids})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('sfdc-msg').innerHTML = '<div class="msg msg-error">' + data.error + '</div>';
+                } else {
+                    document.getElementById('sfdc-msg').innerHTML = '<div class="msg msg-success">' + data.message + '</div>';
+                }
+            })
+            .catch(err => {
+                document.getElementById('sfdc-msg').innerHTML = '<div class="msg msg-error">Ingest failed: ' + err + '</div>';
+            });
+        }
+
+        // ---- SFDC Reconnect ----
+        function reconnectSFDC() {
+            fetch('/sfdc/reconnect', {method: 'POST'})
+                .then(r => r.json())
+                .then(data => {
+                    const badge = document.getElementById('sfdc-badge');
+                    if (data.connected) {
+                        badge.textContent = 'SFDC: connected';
+                        badge.className = 'sfdc-status connected';
+                        alert('Reconnected to SFDC successfully.');
+                    } else {
+                        badge.textContent = 'SFDC: disconnected';
+                        badge.className = 'sfdc-status disconnected';
+                        alert('Failed to reconnect: ' + data.message);
+                    }
+                });
+        }
+
+        // ---- Enter key for SFDC search ----
+        document.getElementById('sfdc-query').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); searchSFDC(); }
+        });
+    </script>
 </body>
 </html>

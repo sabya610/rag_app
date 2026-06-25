@@ -18,6 +18,10 @@ llama-cpp-python
 pdfminer.six
 markdown2
 
+# SFDC integration
+requests>=2.28.0
+html2text>=2024.2.26
+
 # Environment variables
 python-dotenv
 

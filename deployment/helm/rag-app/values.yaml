@@ -1,0 +1,54 @@
+replicaCount: 1
+
+image:
+  repository: sabya610/rag-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+env:
+  DB_HOST: ""
+  DB_PORT: "5432"
+  DB_NAME: "ragdb"
+  DB_USER: "postgres"
+  DB_PASS: "postgres"
+  MODEL_PATH: "/app/rag_app/models/llama-2-7b-chat.Q4_K_M.gguf"
+  EMBEDDING_MODEL: "/app/rag_app/models/embedding/all-MiniLM-L6-v2"
+  SFDC_ENABLED: "true"
+  SF_URL: "https://hp.my.salesforce.com"
+
+# SFDC credentials (stored in a K8s Secret)
+sfdc:
+  # Auth Mode 1: Session ID
+  sessionId: ""
+  sessionIdFile: ""
+  # Auth Mode 2: OAuth2
+  clientId: ""
+  clientSecret: ""
+  username: ""
+  password: ""
+  securityToken: ""
+  loginUrl: "https://login.salesforce.com"
+
+resources:
+  requests:
+    memory: "4Gi"
+    cpu: "2"
+  limits:
+    memory: "8Gi"
+    cpu: "4"
+
+ingress:
+  enabled: false
+  host: rag.local
+
+postgresql:
+  enabled: true
+  image: postgres:15
+  storage: 5Gi
+  username: postgres
+  password: postgres
+  database: ragdb

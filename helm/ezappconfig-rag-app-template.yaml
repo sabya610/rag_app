@@ -1,0 +1,94 @@
+apiVersion: ezconfig.hpe.ezaf.com/v1alpha1
+kind: EzAppConfig
+metadata:
+  name: ezappconfig-rag-app
+  labels:
+    hpe-ezua/imported-app: "true"
+spec:
+  name: rag-app
+  releaseName: rag-app
+  install: true
+  chartVersion: 0.8.0
+  version: 2.0.0
+  description: "AI-Powered Knowledge Assistant for HPE Ezmeral Support — RAG with Llama 3.1 8B Instruct, pgvector, and Salesforce Knowledge integration"
+  label: "EzAssist RAG App"
+  logoImage: ""
+  category: dataScience
+  backoffLimit: 3
+  retry: false
+  options:
+    namespace: rag-app-ns
+    create-namespace: "true"
+    wait: "true"
+    timeout: 15m
+    debug: "true"
+  values: |
+    replicaCount: 1
+
+    image:
+      repository: sabya610/rag-app
+      tag: llama3.1-8b-q4-v8
+      pullPolicy: IfNotPresent
+
+    initImage:
+      repository: sabya610/busybox
+      tag: "1.36"
+
+    service:
+      type: ClusterIP
+      port: 80
+
+    env:
+      DB_HOST: ""
+      DB_PORT: "5432"
+      DB_NAME: "ragdb"
+      DB_USER: "postgres"
+      DB_PASS: "postgres"
+      MODEL_PATH: "/app/rag_app/models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
+      EMBEDDING_MODEL: "/app/rag_app/models/embedding/all-MiniLM-L6-v2"
+      SFDC_ENABLED: "true"
+      SF_URL: "https://hp.my.salesforce.com"
+      SFDC_PRODUCT_QUEUE: "HPE Ezmeral"
+      SFDC_PRODUCT_LINE: "CONT PLT SW (RM)"
+
+    sfdc:
+      sessionId: ""
+      clientId: ""
+      clientSecret: ""
+      username: ""
+      password: ""
+      securityToken: ""
+      loginUrl: "https://login.salesforce.com"
+
+    resources:
+      requests:
+        memory: "24Gi"
+        cpu: "2"
+      limits:
+        memory: "32Gi"
+        cpu: "4"
+
+    postgresql:
+      enabled: true
+      image:
+        repository: sabya610/pgvector
+        tag: latest
+      storage: 5Gi
+      username: postgres
+      password: postgres
+      database: ragdb
+
+    proxy:
+      httpProxy: "http://hpeproxy.its.hpecorp.net:80"
+      httpsProxy: "http://hpeproxy.its.hpecorp.net:80"
+      noProxy: "10.0.0.0/8,192.168.0.0/16,localhost,127.0.0.1,.hpecorp.net,.storage.hpecorp.net"
+
+    ezua:
+      virtualService:
+        endpoint: "${RELEASE_NAME}-${NAMESPACE}.${DOMAIN_NAME}"
+        istioGateway: "istio-system/ezaf-gateway"
+      authorizationPolicy:
+        namespace: "istio-system"
+        providerName: "oauth2-proxy"
+        matchLabels:
+          istio: "ingressgateway"

@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-rag
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-rag
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-rag
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              {{- if .Values.postgresql.enabled }}
+              until nc -z {{ .Release.Name }}-postgres {{ .Values.env.DB_PORT }}; do
+              {{- else }}
+              until nc -z {{ .Values.env.DB_HOST }} {{ .Values.env.DB_PORT }}; do
+              {{- end }}
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready"
+      containers:
+        - name: rag
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 5000
+          env:
+            # Database - auto-wired to deployed Postgres if enabled
+            - name: DB_HOST
+              value: "{{ if .Values.postgresql.enabled }}{{ .Release.Name }}-postgres{{ else }}{{ .Values.env.DB_HOST }}{{ end }}"
+            - name: DB_PORT
+              value: {{ .Values.env.DB_PORT | quote }}
+            - name: DB_NAME
+              value: {{ .Values.env.DB_NAME | quote }}
+            - name: DB_USER
+              value: {{ .Values.env.DB_USER | quote }}
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db-secret
+                  key: DB_PASS
+            # Models
+            - name: MODEL_PATH
+              value: {{ .Values.env.MODEL_PATH | quote }}
+            - name: EMBEDDING_MODEL
+              value: {{ .Values.env.EMBEDDING_MODEL | quote }}
+            # SFDC
+            - name: SFDC_ENABLED
+              value: {{ .Values.env.SFDC_ENABLED | quote }}
+            - name: SF_URL
+              value: {{ .Values.env.SF_URL | quote }}
+            - name: SF_SID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SF_SID
+                  optional: true
+            - name: SFDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SFDC_CLIENT_ID
+                  optional: true
+            - name: SFDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SFDC_CLIENT_SECRET
+                  optional: true
+            - name: SFDC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SFDC_USERNAME
+                  optional: true
+            - name: SFDC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SFDC_PASSWORD
+                  optional: true
+            - name: SFDC_SECURITY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-sfdc-secret
+                  key: SFDC_SECURITY_TOKEN
+                  optional: true
+            # Platform-agnostic SID file path (mounted from Secret)
+            - name: SF_SID_FILE
+              value: "/etc/sfdc/sid.txt"
+          volumeMounts:
+            - name: sfdc-sid
+              mountPath: /etc/sfdc
+              readOnly: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: sfdc-sid
+          secret:
+            secretName: {{ .Release.Name }}-sfdc-secret
+            items:
+              - key: SF_SID
+                path: sid.txt
+            optional: true

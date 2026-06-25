@@ -1,6 +1,6 @@
 apiVersion: v2
 name: rag-app
-description: A RAG application using llama.cpp + Flask + pgvector
+description: HPE Ezmeral RAG Knowledge Assistant - Flask + pgvector + LLaMA + SFDC
 type: application
-version: 0.1.0
-appVersion: "1.0.0"
+version: 0.8.0
+appVersion: "2.0.0"

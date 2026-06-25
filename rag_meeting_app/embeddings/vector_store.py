@@ -1,46 +1,31 @@
-import numpy as np
-
+import chromadb
 
 class VectorStore:
-    """
-    Simple in-memory vector store.
-    Replace later with FAISS / pgvector / Chroma if needed.
-    """
-
     def __init__(self):
-        # Each item: {embedding, text, metadata}
-        self.store = []
-
-    def add(self, embedding, document: str, metadata: dict | None = None):
-        """
-        Add a document embedding to the store.
-        """
-        self.store.append({
-            "embedding": np.array(embedding),
-            "text": document,
-            "metadata": metadata or {}
-        })
-
-    def search(self, embedding, top_k: int = 5):
-        """
-        Perform cosine similarity search.
-        """
-        if not self.store:
-            return []
-
-        query_vec = np.array(embedding)
-
-        def cosine_similarity(a, b):
-            return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-
-        scored_results = [
-            (
-                cosine_similarity(query_vec, item["embedding"]),
-                item
+        self.client = chromadb.Client(
+            settings=chromadb.Settings(
+                persist_directory="./vector_db"
             )
-            for item in self.store
-        ]
+        )
 
-        scored_results.sort(key=lambda x: x[0], reverse=True)
+        self.collection = self.client.get_or_create_collection(
+            name="meetings"
+        )
 
-        return [item for _, item in scored_results[:top_k]]
+    def add(self, embedding, document, metadata=None):
+        self.collection.add(
+            embeddings=[embedding.tolist()],
+            documents=[document],
+            metadatas=[metadata or {}],
+            ids=[str(hash(document))]
+        )
+
+        self.client.persist()
+
+    def search(self, embedding, top_k=5):
+        result = self.collection.query(
+            query_embeddings=[embedding.tolist()],
+            n_results=top_k
+        )
+
+        return result["documents"][0]
