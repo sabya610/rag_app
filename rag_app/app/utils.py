@@ -358,10 +358,11 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
         for cid in top_chunk_ids:
             adjacent_ids.update([cid - 1, cid, cid + 1])
         
+        # Query adjacent chunks - use simpler WHERE IN syntax
         sql_adjacent = sa_text("""
             SELECT DISTINCT text
             FROM kb_chunks
-            WHERE id IN (SELECT UNNEST(:ids::int[]))
+            WHERE id = ANY(CAST(:ids AS integer[]))
               AND source_file = :src
         """)
         adjacent_results = db.session.execute(sql_adjacent, {
