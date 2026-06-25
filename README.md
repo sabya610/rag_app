@@ -4,7 +4,7 @@ A Retrieval-Augmented Generation (RAG) application that uses `llama.cpp`, `pgvec
 
 **Latest Version**: v10 (llama3.1-8b-q4) — Production deployed in Kubernetes
 
-## 🎯 Recent Improvements (v10)
+## Recent Improvements (v10)
 
 Enhanced RAG generation to preserve detailed information from Knowledge Articles:
 
@@ -17,7 +17,7 @@ Enhanced RAG generation to preserve detailed information from Knowledge Articles
 
 **Result**: Less over-summarization, more detailed troubleshooting steps, better faithfulness to source material.
 
-## 📦 Project Structure
+## Project Structure
 
 ```
 rag_app/
@@ -43,7 +43,7 @@ rag_app/
 └── run.py                   # Flask entry point
 ```
 
-## 🔧 Stack
+## Stack
 
 - **LLM**: Meta-Llama-3.1-8B-Instruct-Q4_K_M (4-bit quantized, 7.5GB)
 - **Inference**: llama.cpp (C++ backend with n_ctx parameter)
@@ -52,7 +52,7 @@ rag_app/
 - **API Framework**: Flask (Python 3.10)
 - **Deployment**: Kubernetes + Helm
 
-## 🚀 Deployment
+## Deployment
 
 ### Kubernetes (Production)
 
@@ -90,7 +90,7 @@ docker run -p 5000:5000 \
 - `sabya610/rag-app:llama3.1-8b-q4-v9` — Previous stable
 - Earlier versions: v8, v7, v6, v5, v4, v3, v2
 
-## 📋 Configuration
+## Configuration
 
 Key environment variables in `rag_app/app/config.py`:
 
@@ -110,7 +110,7 @@ export POSTGRES_URL=postgresql://...
 export SFDC_SESSION_ID=...    # Salesforce session token
 ```
 
-## 📚 Integration with Salesforce Knowledge Base
+## Integration with Salesforce Knowledge Base
 
 The RAG app integrates with Salesforce Knowledge Articles (Product Line: HPE Ezmeral):
 
@@ -120,7 +120,7 @@ The RAG app integrates with Salesforce Knowledge Articles (Product Line: HPE Ezm
 
 Authentication via `SFDC_SESSION_ID` environment variable (Bearer token).
 
-## 🗄️ Database Setup
+## Database Setup
 
 PostgreSQL + pgvector extension required. Create database:
 
@@ -143,7 +143,7 @@ DELETE FROM kb_chunks;
 -- App will re-embed on next ingest
 ```
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Q&A Endpoint
 ```
@@ -172,7 +172,7 @@ GET /api/rag/history
 GET /health
 ```
 
-## 🛠️ Development
+## Development
 
 ### Local Setup
 
@@ -206,25 +206,25 @@ Compare v10 output vs. previous versions:
 3. Check that command blocks are shown exactly as documented
 4. Confirm multiple diagnostic commands included in response
 
-## 📊 Performance Notes
+## Performance Notes
 
 - **Embeddings**: Offline (no API calls), ~50ms per query
 - **LLM Inference**: ~2-5 seconds per response (8B model, 4-bit quantized)
 - **Vector Search**: <10ms for pgvector queries
 - **Total Latency**: ~3-6 seconds per Q&A request
 
-## 🔐 Security
+## Security
 
 - Session ID stored in Kubernetes secrets
 - PostgreSQL credentials in encrypted ConfigMaps
 - Model files served from container (no external model downloads)
 - No private data sent to external APIs (all embeddings/inference local)
 
-## 📝 License
+## License
 
 Internal HPE project
 
-## 🤝 Contributing
+## Contributing
 
 Push to `feature/meeting-transcript-rag` branch, then create pull request.
 
