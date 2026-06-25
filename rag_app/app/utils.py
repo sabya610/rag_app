@@ -333,9 +333,9 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
 
 
 
-    # Step 1: Initial retrieval
+    # Step 1: Initial retrieval by similarity
     sql = sa_text("""
-        SELECT text, source_file, embedding <-> CAST(:query_vec AS vector) AS dist
+        SELECT id, text, source_file, embedding <-> CAST(:query_vec AS vector) AS dist
         FROM kb_chunks
         ORDER BY dist
         LIMIT :top_k
@@ -348,8 +348,28 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
     if not results:
         return []
 
-    chunks = [r[0] for r in results]
-    source_file = results[0][1]
+    chunks = [r[1] for r in results]
+    source_file = results[0][2]
+    top_chunk_ids = [r[0] for r in results]
+
+    # Step 1b: Fetch adjacent chunks by ID (±1 each) to preserve document context
+    if top_chunk_ids:
+        adjacent_ids = set()
+        for cid in top_chunk_ids:
+            adjacent_ids.update([cid - 1, cid, cid + 1])
+        
+        sql_adjacent = sa_text("""
+            SELECT DISTINCT text
+            FROM kb_chunks
+            WHERE id IN (SELECT UNNEST(:ids::int[]))
+              AND source_file = :src
+        """)
+        adjacent_results = db.session.execute(sql_adjacent, {
+            "ids": list(adjacent_ids),
+            "src": source_file
+        }).fetchall()
+        adjacent_chunks = [r[0] for r in adjacent_results if r[0] not in chunks]
+        chunks.extend(adjacent_chunks)
 
     # Step 2: Retrieve more from same source file
     sql2 = sa_text("""
@@ -362,10 +382,10 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
     results2 = db.session.execute(sql2, {
         "src": source_file,
         "query_vec": query_vec,
-        "top_k": top_k * 2
+        "top_k": top_k
     }).fetchall()
 
-    chunks = [r[0] for r in results2]
+    chunks = [r[0] for r in results2] + chunks
 
 
     # Ensure all '## Resolution' chunks from the same source file are included if query asks for resolution
@@ -485,38 +505,51 @@ def llm_answer(context_chunks, question):
     llama = current_app.llama
     #context = "".join(context_chunks)
     context = clean_context("".join(context_chunks))
+
+    # Truncate context to fit within model's context window
+    max_chars = Config.MAX_CONTEXT_CHARS
+    if len(context) > max_chars:
+        context = context[:max_chars]
+        print(f"[WARN] Context truncated to {max_chars} chars")
+
     print("Question:", question)
     print("Context retrieved:", context)
 
-    prompt = f"""
-You are a Kubernetes platform assistant for HPE Ezmeral.
+    system_prompt = """You are a helpful Kubernetes platform assistant for HPE Ezmeral. Your job is to answer questions using ONLY the context provided below.
 
-Use only CLI commands and instructions found **exactly** in the context below.
-Ensure numbered steps are consistent and not appended multiple times.
-Make sure each bash block starts and ends properly.
-Ensure the output do not have duplicated instructions.
-Do not invent commands that are not in the context.
-Provide a clear, **numbered** list of steps in order.
-Each step must be on a new line and contain any commands inside fenced ```bash code blocks.
+RULES:
+1. Answer the question based on the context. Extract and organize ALL relevant steps, commands, notes, warnings, and diagnostic information from the context.
+2. Do NOT over-summarize, simplify, or omit details. Include every troubleshooting step, command example, prerequisite, and warning from the context.
+3. Preserve command blocks, file paths, and command examples EXACTLY as shown in the context. Do NOT paraphrase or replace with placeholder text.
+4. Do NOT make up, guess, or fabricate any steps or commands that are not in the context.
+5. Provide a clear, numbered list of steps. Put CLI commands inside ```bash code blocks. Include all diagnostic commands, not just the primary ones.
+6. If the context includes notes, warnings, or special considerations for Java/services/diagnostics, preserve and emphasize those sections.
+7. ONLY if the context truly contains NO relevant information at all, respond with:
+   'I don't have enough information in the knowledge base to answer this question.'"""
 
-### Context:
+    user_prompt = f"""Context:
 {context}
 
-### Question:
-{question}
+Question: {question}
 
----
-Numbered Steps:
-"""
+Using only the context above, provide a clear numbered answer:"""
 
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
 
-    out = llama(
-        prompt=prompt,
+    out = llama.create_chat_completion(
+        messages=messages,
         max_tokens=2048,
-        stop=["<END>"]
+        temperature=0.1,
+        top_p=0.9,
+        repeat_penalty=1.2,
     )
 
+    usage = out.get("usage", {})
+    print(f"[TOKEN USAGE] Prompt tokens: {usage.get('prompt_tokens', 'N/A')}, "
+          f"Completion tokens: {usage.get('completion_tokens', 'N/A')}, "
+          f"Total tokens: {usage.get('total_tokens', 'N/A')}")
 
-    #pdb.set_trace()
-
-    return out["choices"][0]["text"].strip()
+    return out["choices"][0]["message"]["content"].strip()
