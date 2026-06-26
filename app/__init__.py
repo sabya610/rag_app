@@ -6,6 +6,7 @@ from app.config import Config
 from app.models import db
 from dotenv import load_dotenv
 from app.routes.rag_routes import rag_bp
+from app.routes.slack_routes import slack_routes
 from sqlalchemy import event
 import os
 #from sentence_transformers import SentenceTransformer
@@ -99,8 +100,8 @@ def create_app():
                 cur.close()
 
     # Register Blueprints
-
     app.register_blueprint(rag_bp)
+    app.register_blueprint(slack_routes)
 
 
     return app

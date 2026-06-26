@@ -32,6 +32,10 @@ faiss-cpu
 pandas
 numpy
 
+# Slack Integration
+slack-sdk
+slack-bolt
+
 # Testing
 pytest
 pytest-mock
