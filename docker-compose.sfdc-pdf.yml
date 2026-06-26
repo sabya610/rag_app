@@ -1,0 +1,81 @@
+# Docker Compose for SFDC + PDF Integration (Monday Demo - Stable)
+# Use this for the production demo on Monday
+# NO Slack integration
+
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:latest
+    container_name: postgres-sfdc-pdf
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ragdb}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_sfdc_pdf_data:/var/lib/postgresql/data
+      - ./postgres:/docker-entrypoint-initdb.d
+    networks:
+      - rag-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rag-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.sfdc-pdf
+    container_name: rag-app-sfdc-pdf
+    image: rag-app:1.0-sfdc-pdf
+    environment:
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-postgres}
+      DB_HOST: postgres-sfdc-pdf
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-ragdb}
+      MODEL_PATH: ${MODEL_PATH:-./models/llama-2-7b-chat.Q4_K_M.gguf}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-./models/embedding/all-MiniLM-L6-v2}
+      SFDC_USERNAME: ${SFDC_USERNAME}
+      SFDC_PASSWORD: ${SFDC_PASSWORD}
+      SFDC_SECURITY_TOKEN: ${SFDC_SECURITY_TOKEN}
+      SFDC_CLIENT_ID: ${SFDC_CLIENT_ID}
+      SFDC_CLIENT_SECRET: ${SFDC_CLIENT_SECRET}
+      FLASK_ENV: production
+      FEATURES_SLACK: disabled
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - rag-network
+    volumes:
+      - ./models:/app/rag_app/models:ro
+      - ./pdf_kb_files:/app/rag_app/pdf_kb_files:ro
+      - rag_app_sfdc_pdf_logs:/var/log/rag-app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/rag/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "version=1.0-sfdc-pdf"
+      - "description=SFDC + PDF RAG (Monday Demo)"
+      - "date=2026-01-27"
+
+volumes:
+  postgres_sfdc_pdf_data:
+    driver: local
+  rag_app_sfdc_pdf_logs:
+    driver: local
+
+networks:
+  rag-network:
+    driver: bridge

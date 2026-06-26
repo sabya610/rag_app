@@ -1,0 +1,89 @@
+# Docker Compose for SFDC + PDF + Slack Integration (Feature)
+# Use this for testing the new Slack integration
+# Includes SFDC, PDF, and full Slack support
+
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:latest
+    container_name: postgres-slack-integrated
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
+      POSTGRES_DB: ${DB_NAME:-ragdb}
+    ports:
+      - "5433:5432"  # Different port to avoid conflict with SFDC/PDF instance
+    volumes:
+      - postgres_slack_integrated_data:/var/lib/postgresql/data
+      - ./postgres:/docker-entrypoint-initdb.d
+    networks:
+      - rag-network-slack
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rag-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.slack-integrated
+    container_name: rag-app-slack-integrated
+    image: rag-app:1.0-slack-integrated
+    environment:
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASS: ${DB_PASS:-postgres}
+      DB_HOST: postgres-slack-integrated
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-ragdb}
+      MODEL_PATH: ${MODEL_PATH:-./models/llama-2-7b-chat.Q4_K_M.gguf}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-./models/embedding/all-MiniLM-L6-v2}
+      # SFDC Integration (existing)
+      SFDC_USERNAME: ${SFDC_USERNAME}
+      SFDC_PASSWORD: ${SFDC_PASSWORD}
+      SFDC_SECURITY_TOKEN: ${SFDC_SECURITY_TOKEN}
+      SFDC_CLIENT_ID: ${SFDC_CLIENT_ID}
+      SFDC_CLIENT_SECRET: ${SFDC_CLIENT_SECRET}
+      # Slack Integration (new)
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
+      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN}
+      SLACK_IMPORT_LIMIT: ${SLACK_IMPORT_LIMIT:-100}
+      SLACK_IMPORT_DAYS: ${SLACK_IMPORT_DAYS:-30}
+      FLASK_ENV: development
+      FEATURES_SLACK: enabled
+    ports:
+      - "5001:5000"  # Different port to avoid conflict with SFDC/PDF instance
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - rag-network-slack
+    volumes:
+      - ./models:/app/rag_app/models:ro
+      - ./pdf_kb_files:/app/rag_app/pdf_kb_files:ro
+      - rag_app_slack_integrated_logs:/var/log/rag-app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/slack/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "version=1.0-slack-integrated"
+      - "description=SFDC + PDF + Slack RAG (Feature Testing)"
+      - "branch=feature/slack-integration"
+      - "date=2026-01-27"
+
+volumes:
+  postgres_slack_integrated_data:
+    driver: local
+  rag_app_slack_integrated_logs:
+    driver: local
+
+networks:
+  rag-network-slack:
+    driver: bridge
