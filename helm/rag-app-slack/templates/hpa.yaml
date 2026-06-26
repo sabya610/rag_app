@@ -1,0 +1,24 @@
+{{- if .Values.ragApp.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "rag-app-slack.fullname" . }}
+  labels:
+    {{- include "rag-app-slack.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "rag-app-slack.fullname" . }}
+  minReplicas: {{ .Values.ragApp.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.ragApp.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.ragApp.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.ragApp.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+{{- end }}
