@@ -1,0 +1,226 @@
+# Default values for rag-app-slack Helm chart
+# MERGED: Existing deployment + PCAI security improvements + Slack integration
+# Status: PRODUCTION-READY for PCAI
+
+# Global settings
+global:
+  environment: production
+  clusterName: "PCAI"
+
+# RAG App Deployment
+ragApp:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: registry.pcai.local/rag-app
+    tag: slack-integrated
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5001
+    targetPort: 5001
+    annotations: {}
+  
+  # Environment variables from existing deployment
+  env:
+    DB_HOST: ""
+    DB_PORT: "5432"
+    DB_NAME: "ragdb_slack"
+    DB_USER: "postgres"
+    MODEL_PATH: "/app/rag_app/models/llama-2-7b-chat.Q4_K_M.gguf"
+    EMBEDDING_MODEL: "/app/rag_app/models/embedding/all-MiniLM-L6-v2"
+    SFDC_ENABLED: "true"
+    SF_URL: "https://hp.my.salesforce.com"
+    SFDC_PRODUCT_QUEUE: "HPE Ezmeral"
+    SFDC_PRODUCT_LINE: "CONT PLT SW (RM)"
+    FEATURES_SLACK: "true"
+  
+  ingress:
+    enabled: true
+    className: "pcai-ingress"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: rag-app.pcai.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: rag-app-tls
+        hosts:
+          - rag-app.pcai.local
+  
+  resources:
+    requests:
+      memory: "6Gi"
+      cpu: "2000m"
+    limits:
+      memory: "8Gi"
+      cpu: "3000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 75
+  
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5001
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 5001
+      initialDelaySeconds: 15
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+
+# PostgreSQL Database
+postgresql:
+  enabled: true
+  auth:
+    # SECURITY: Use Kubernetes secret instead of hardcoded password
+    existingSecret: "postgres-secret"
+    secretKeys:
+      adminPasswordKey: "postgres-password"
+      userPasswordKey: "password"
+    username: postgres
+    database: ragdb_slack
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClassName: "pcai-storage"
+  
+  metrics:
+    enabled: true
+
+# Model Configuration
+models:
+  embeddingModel: "/app/rag_app/models/embedding/all-MiniLM-L6-v2"
+  llmModel: "/app/rag_app/models/llama-2-7b-chat.Q4_K_M.gguf"
+  embeddingDimension: 384
+  persistence:
+    enabled: true
+    size: 30Gi
+    storageClassName: "pcai-storage"
+    mountPath: /app/models
+
+# Slack Integration Settings
+slack:
+  enabled: true
+  # SECURITY: Must be set via secret
+  # Use: kubectl create secret generic slack-credentials ...
+  botToken: ""
+  signingSecret: ""
+  importLimit: 100
+  importDays: 30
+
+# Salesforce Configuration
+salesforce:
+  enabled: true
+  # SECURITY: Credentials via Kubernetes Secret, not hardcoded
+  credentialsSecret: "sfdc-credentials"
+  sessionIdFile: "/etc/sfdc/sid.txt"
+  # These are populated from secret
+  username: ""
+  password: ""
+  securityToken: ""
+  loginUrl: "https://login.salesforce.com"
+
+# EZUA Integration (from existing deployment)
+ezua:
+  enabled: true
+  virtualService:
+    endpoint: "rag-app.${DOMAIN_NAME}"
+    istioGateway: "istio-system/ezaf-gateway"
+  authorizationPolicy:
+    namespace: "istio-system"
+    providerName: "oauth2-proxy"
+    matchLabels:
+      istio: "ingressgateway"
+
+# Logging
+logging:
+  level: INFO
+  format: json
+
+# Namespace
+namespace: rag-app-sfdc-slack
+
+# Pod Security - HARDENED for production
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Security Context - prevent privilege escalation
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Node Selection
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity - pod anti-affinity for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/instance
+                operator: In
+                values:
+                  - rag-app-slack
+          topologyKey: kubernetes.io/hostname
+
+# Service Account
+serviceAccount:
+  create: true
+  name: rag-app-slack
+  automountServiceAccountToken: true
+  annotations:
+    description: "RAG App Slack Integration Service Account"
+
+# Network Policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+
+# Pod Disruption Budget for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Resource Quotas
+resourceQuota:
+  enabled: false
