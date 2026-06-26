@@ -1,0 +1,229 @@
+# Default values for rag-app-slack Helm chart
+# PCAI Kubernetes Cluster - CORRECTED & SECURED
+
+# Global settings
+global:
+  environment: production
+  clusterName: "PCAI"
+
+# RAG App Deployment
+ragApp:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: registry.pcai.local/rag-app
+    tag: slack-integrated
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5001
+    targetPort: 5001
+    annotations: {}
+  
+  ingress:
+    enabled: true
+    className: "pcai-ingress"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: rag-app.pcai.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: rag-app-tls
+        hosts:
+          - rag-app.pcai.local
+  
+  # FIXED: Increased resources for ML models
+  resources:
+    requests:
+      memory: "6Gi"
+      cpu: "2000m"
+    limits:
+      memory: "8Gi"
+      cpu: "3000m"
+  
+  # FIXED: Enabled autoscaling for production
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 75
+  
+  healthCheck:
+    enabled: true
+    # FIXED: Better health check endpoint and timings
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5001
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 5001
+      initialDelaySeconds: 15
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+
+# PostgreSQL Database
+postgresql:
+  enabled: true
+  auth:
+    # FIXED: Use Kubernetes secret instead of hardcoded password
+    existingSecret: "postgres-secret"
+    secretKeys:
+      adminPasswordKey: "postgres-password"
+      userPasswordKey: "password"
+    username: postgres
+    database: ragdb_slack
+  
+  primary:
+    persistence:
+      enabled: true
+      # FIXED: Increased size and use PCAI storage class
+      size: 100Gi
+      storageClassName: "pcai-storage"
+  
+  # FIXED: Enable metrics for monitoring
+  metrics:
+    enabled: true
+
+# Model Configuration - FIXED: Merged duplicate sections
+models:
+  embeddingModel: "models/embedding/all-MiniLM-L6-v2"
+  llmModel: "models/llama-2-7b-chat.Q4_K_M.gguf"
+  embeddingDimension: 384
+  # FIXED: Enable model persistence and increased size
+  persistence:
+    enabled: true
+    size: 30Gi
+    storageClassName: "pcai-storage"
+    mountPath: /app/models
+
+# Slack Integration Settings
+slack:
+  enabled: true
+  # IMPORTANT: Set via command line:
+  # --set slack.botToken=xoxb-YOUR_TOKEN
+  # --set slack.signingSecret=YOUR_SECRET
+  # OR use secrets reference:
+  # credentialsSecret: "slack-credentials"
+  botToken: ""
+  signingSecret: ""
+  importLimit: 100
+  importDays: 30
+
+# Salesforce Configuration
+salesforce:
+  # FIXED: Disabled by default, enable only when configured
+  enabled: false
+  # FIXED: Use Kubernetes secret instead of hardcoded values
+  credentialsSecret: "sfdc-credentials"
+  # Credentials should be in secret:
+  # username, password, securityToken, clientId, clientSecret
+
+# Logging
+logging:
+  level: INFO
+  format: json
+
+# Namespace
+namespace: rag-app-sfdc-slack
+
+# Pod Security - FIXED: Don't run as root
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+# FIXED: Disable privilege escalation for security
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Node Selection - optional, remove if not needed
+nodeSelector: {}
+#  node-type: compute
+
+# Tolerations - optional for node affinity
+tolerations: []
+#  - key: "dedicated"
+#    operator: "Equal"
+#    value: "ml-workloads"
+#    effect: "NoSchedule"
+
+# Affinity - pod anti-affinity recommended for HA
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/instance
+                operator: In
+                values:
+                  - rag-app-slack
+          topologyKey: kubernetes.io/hostname
+
+# Service Account - FIXED: Added configuration
+serviceAccount:
+  create: true
+  name: rag-app-slack
+  automountServiceAccountToken: true
+  annotations:
+    description: "RAG App Slack Integration Service Account"
+
+# Network Policies - optional but recommended
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 5001
+
+# Resource Quotas - optional for namespace isolation
+resourceQuota:
+  enabled: false
+  hard:
+    requests.memory: "32Gi"
+    requests.cpu: "8000m"
+    limits.memory: "64Gi"
+    limits.cpu: "16000m"
+    pods: "20"
+    persistentvolumeclaims: "5"
+
+# Priority Class - optional for critical workloads
+priorityClassName: ""
+# priorityClassName: "high-priority"
+
+# Pod Disruption Budget - for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
