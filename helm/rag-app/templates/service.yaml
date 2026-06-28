@@ -6,7 +6,7 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetport: 5000
+      targetPort: 5000
   selector:
     app: {{ .Release.Name }}-rag
 

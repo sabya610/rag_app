@@ -14,6 +14,13 @@ from app.config import Config
 rag_bp = Blueprint("rag", __name__)
 PDF_FOLDER = Config.PDF_FOLDER
 
+
+@rag_bp.route("/health", methods=["GET"])
+def health():
+    from flask import jsonify
+    return jsonify({"status": "ok"}), 200
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'pdf'
 
