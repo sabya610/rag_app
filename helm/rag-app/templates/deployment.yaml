@@ -121,6 +121,11 @@ spec:
               value: "{{ .Values.proxy.noProxy }},{{ .Release.Name }}-postgres"
             {{- end }}
             {{- end }}
+            # Torch cache dir fix: bypass getpwuid() failure for arbitrary UIDs (Kubeflow injects UID 10000002)
+            - name: TORCHINDUCTOR_CACHE_DIR
+              value: "/tmp/torch_inductor_cache"
+            - name: TORCH_HOME
+              value: "/tmp/torch_home"
           livenessProbe:
             tcpSocket:
               port: 5000

@@ -1,0 +1,16 @@
+apiVersion: v2
+name: rag-app-slack
+description: RAG App with Slack Integration for FTC AIE 1.1.1 Cluster
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - rag
+  - slack
+  - kubernetes
+maintainers:
+  - name: Deployment Team
+    email: deployment@example.com
+home: https://github.com/sabya610/rag_app
+sources:
+  - https://github.com/sabya610/rag_app

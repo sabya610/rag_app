@@ -12,8 +12,14 @@ ragApp:
   replicaCount: 2
   
   image:
-    repository: docker.io/library/rag-app
-    tag: slack-integrated
+    repository: sabya610/rag-app
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  # Init container image (used for wait-for-postgres)
+  initImage:
+    repository: sabya610/busybox
+    tag: "1.36"
     pullPolicy: IfNotPresent
   
   service:

@@ -1,6 +1,6 @@
 {{- if .Values.postgresql.enabled }}
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ .Release.Name }}-postgres
   labels:
@@ -8,6 +8,7 @@ metadata:
     {{- include "hpe-ezua.labels" . | nindent 4 }}
 spec:
   replicas: 1
+  serviceName: {{ .Release.Name }}-postgres
   selector:
     matchLabels:
       app: {{ .Release.Name }}-postgres
@@ -17,31 +18,56 @@ spec:
         app: {{ .Release.Name }}-postgres
         {{- include "hpe-ezua.labels" . | nindent 8 }}
     spec:
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: Always
+      serviceAccountName: default
       containers:
         - name: postgres
           image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
+          securityContext:
+            runAsUser: 1001
+            runAsGroup: 1001
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 5432
           env:
-            - name: POSTGRES_USER
+            - name: POSTGRESQL_USERNAME
               value: {{ .Values.postgresql.username | quote }}
-            - name: POSTGRES_PASSWORD
+            - name: POSTGRESQL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Release.Name }}-db-secret
                   key: DB_PASS
-            - name: POSTGRES_DB
+            - name: POSTGRESQL_DATABASE
               value: {{ .Values.postgresql.database | quote }}
+            - name: POSTGRESQL_SHARED_PRELOAD_LIBRARIES
+              value: "pgaudit"
           volumeMounts:
             - name: pg-data
-              mountPath: /var/lib/postgresql/data
-              subPath: pgdata
+              mountPath: /bitnami/postgresql
             - name: pg-init
               mountPath: /docker-entrypoint-initdb.d
+            - name: empty-dir
+              mountPath: /tmp
+              subPath: tmp-dir
+            - name: empty-dir
+              mountPath: /opt/bitnami/postgresql/conf
+              subPath: app-conf-dir
+            - name: empty-dir
+              mountPath: /opt/bitnami/postgresql/tmp
+              subPath: app-tmp-dir
+            - name: dshm
+              mountPath: /dev/shm
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "{{ .Values.postgresql.username }}"]
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
           resources:
             requests:
@@ -51,12 +77,23 @@ spec:
               memory: "512Mi"
               cpu: "500m"
       volumes:
-        - name: pg-data
-          persistentVolumeClaim:
-            claimName: {{ .Release.Name }}-pg-pvc
+        - name: empty-dir
+          emptyDir: {}
+        - name: dshm
+          emptyDir:
+            medium: Memory
         - name: pg-init
           configMap:
             name: {{ .Release.Name }}-pg-init
+  volumeClaimTemplates:
+    - metadata:
+        name: pg-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.postgresql.storage }}
 ---
 apiVersion: v1
 kind: Service
@@ -69,17 +106,6 @@ spec:
       targetPort: 5432
   selector:
     app: {{ .Release.Name }}-postgres
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ .Release.Name }}-pg-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ .Values.postgresql.storage }}
 ---
 apiVersion: v1
 kind: ConfigMap

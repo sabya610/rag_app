@@ -1,0 +1,193 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rag-app-slack.fullname" . }}
+  labels:
+    {{- include "rag-app-slack.labels" . | nindent 4 }}
+    app: rag-app
+    version: slack-integrated
+spec:
+  {{- if not .Values.ragApp.autoscaling.enabled }}
+  replicas: {{ .Values.ragApp.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "rag-app-slack.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        {{- include "rag-app-slack.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "rag-app-slack.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      
+      initContainers:
+      - name: db-init
+        image: "{{ .Values.ragApp.image.repository }}:{{ .Values.ragApp.image.tag }}"
+        imagePullPolicy: {{ .Values.ragApp.image.pullPolicy }}
+        command: 
+          - /bin/sh
+          - -c
+          - |
+            echo "Waiting for PostgreSQL..."
+            until nc -z {{ include "rag-app-slack.fullname" . }}-postgresql 5432; do
+              echo "Waiting..."
+              sleep 2
+            done
+            echo "PostgreSQL is ready!"
+            python init_slack_db.py
+        env:
+          - name: DB_HOST
+            value: {{ include "rag-app-slack.fullname" . }}-postgresql
+          - name: DB_PORT
+            value: "5432"
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "rag-app-slack.fullname" . }}-secret
+                key: db-user
+          - name: DB_PASS
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "rag-app-slack.fullname" . }}-secret
+                key: db-pass
+          - name: DB_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "rag-app-slack.fullname" . }}-config
+                key: db-name
+          - name: FEATURES_SLACK
+            value: "true"
+      
+      containers:
+      - name: rag-app-slack
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.ragApp.image.repository }}:{{ .Values.ragApp.image.tag }}"
+        imagePullPolicy: {{ .Values.ragApp.image.pullPolicy }}
+        
+        ports:
+        - name: http
+          containerPort: {{ .Values.ragApp.service.targetPort }}
+          protocol: TCP
+        
+        {{- if .Values.ragApp.healthCheck.enabled }}
+        livenessProbe:
+          {{- toYaml .Values.ragApp.healthCheck.livenessProbe | nindent 12 }}
+        readinessProbe:
+          {{- toYaml .Values.ragApp.healthCheck.readinessProbe | nindent 12 }}
+        {{- end }}
+        
+        resources:
+          {{- toYaml .Values.ragApp.resources | nindent 12 }}
+        
+        env:
+        # Database Configuration
+        - name: DB_HOST
+          value: {{ include "rag-app-slack.fullname" . }}-postgresql
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-secret
+              key: db-user
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-secret
+              key: db-pass
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-config
+              key: db-name
+        
+        # Slack Configuration
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-secret
+              key: slack-bot-token
+        - name: SLACK_SIGNING_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-secret
+              key: slack-signing-secret
+        - name: SLACK_IMPORT_LIMIT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-config
+              key: slack-import-limit
+        - name: SLACK_IMPORT_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-config
+              key: slack-import-days
+        
+        # Salesforce Configuration
+        - name: SFDC_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-secret
+              key: sfdc-username
+        - name: SFDC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-secret
+              key: sfdc-password
+        - name: SFDC_SECURITY_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-secret
+              key: sfdc-security-token
+        
+        # Model Configuration
+        - name: EMBEDDING_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-config
+              key: embedding-model
+        - name: MODEL_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "rag-app-slack.fullname" . }}-config
+              key: llm-model
+        
+        # Features
+        - name: FEATURES_SLACK
+          value: "true"
+        - name: FLASK_ENV
+          value: "production"
+        
+        volumeMounts:
+        - name: models
+          mountPath: /app/models
+          readOnly: true
+        - name: logs
+          mountPath: /app/logs
+      
+      volumes:
+      - name: models
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

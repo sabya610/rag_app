@@ -457,6 +457,7 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
     return final_chunks
 
 def clean_context(text):
+    from app.config import Config
     # 1. Remove exact duplicate lines
     seen, out = set(), []
     for line in text.splitlines():
@@ -471,7 +472,12 @@ def clean_context(text):
     # 3. Remove partial fenced lines like "```bash systemctl ```"
     text = re.sub(r'```bash\s*systemctl\s*```', '```bash\nsystemctl\n```', text)
     # 4. Collapse consecutive identical command blocks
-    text = re.sub(r'(```bash[\s\S]*?```)(\s*\1)+', r'\1', text)
+    text = re.sub(r'(```bash[\s\S]*?```)(\ s*\1)+', r'\1', text)
+    # 5. Truncate to MAX_CONTEXT_CHARS to keep LLM prompt manageable
+    max_chars = Config.MAX_CONTEXT_CHARS
+    if len(text) > max_chars:
+        text = text[:max_chars]
+        print(f"[WARN] Context truncated to {max_chars} chars")
     return text.strip()
 
 
@@ -512,7 +518,7 @@ Numbered Steps:
 
     out = llama(
         prompt=prompt,
-        max_tokens=2048,
+        max_tokens=512,
         stop=["<END>"]
     )
 

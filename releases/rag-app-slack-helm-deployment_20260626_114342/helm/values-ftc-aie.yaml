@@ -1,0 +1,75 @@
+# Helm deployment values for FTC AIE 1.1.1 Cluster
+# Use with: helm install rag-app-slack ./helm/rag-app-slack -f helm/values-ftc-aie.yaml --set slack.botToken=xoxb-... --set slack.signingSecret=...
+
+global:
+  environment: production
+  clusterName: "FTC-AIE-1.1.1"
+
+ragApp:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: docker.io/your-docker-username/rag-app
+    tag: slack-integrated
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5001
+    targetPort: 5001
+  
+  resources:
+    requests:
+      memory: "3Gi"
+      cpu: "1500m"
+    limits:
+      memory: "6Gi"
+      cpu: "3000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+
+postgresql:
+  enabled: true
+  auth:
+    username: postgres
+    password: postgres123
+    database: ragdb_slack
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClassName: "default"
+
+slack:
+  enabled: true
+  botToken: "" # Override with --set slack.botToken=xoxb-...
+  signingSecret: "" # Override with --set slack.signingSecret=...
+  importLimit: 100
+  importDays: 30
+
+salesforce:
+  enabled: true
+  username: "" # Override with --set salesforce.username=...
+  password: "" # Override with --set salesforce.password=...
+  securityToken: "" # Override with --set salesforce.securityToken=...
+
+models:
+  embeddingModel: "models/embedding/all-MiniLM-L6-v2"
+  llmModel: "models/llama-2-7b-chat.Q4_K_M.gguf"
+  embeddingDimension: 384
+
+logging:
+  level: INFO
+  format: json
+
+namespace: default
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,154 @@
+# RAG App Slack Integration - Example Values Configuration
+# For deployment to Kubernetes cluster
+
+replicaCount: 2
+
+image:
+  repository: sabya610/rag-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Init container image (used for wait-for-postgres)
+initImage:
+  repository: busybox
+  tag: "1.36"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5001
+  targetPort: 5001
+
+# Environment variables for RAG App
+env:
+  DB_HOST: "postgresql"
+  DB_PORT: "5432"
+  DB_NAME: "ragdb_slack"
+  DB_USER: "postgres"
+  # DB_PASS: Use secrets instead (see below)
+  
+  # Model paths
+  MODEL_PATH: "/app/rag_app/models/llama-2-7b-chat.Q4_K_M.gguf"
+  EMBEDDING_MODEL: "/app/rag_app/models/embedding/all-MiniLM-L6-v2"
+  
+  # Slack configuration
+  FEATURES_SLACK: "true"
+  SLACK_IMPORT_LIMIT: "100"
+  SLACK_IMPORT_DAYS: "30"
+  
+  # Salesforce configuration
+  SFDC_ENABLED: "true"
+  SF_URL: "https://hp.my.salesforce.com"
+  SFDC_PRODUCT_QUEUE: "HPE Ezmeral"
+  SFDC_PRODUCT_LINE: "CONT PLT SW (RM)"
+
+# SFDC credentials (stored in K8s Secrets - DO NOT hardcode)
+sfdc:
+  # Auth Mode 1: Session ID (from existing deployment)
+  sessionIdFile: "/etc/sfdc/sid.txt"
+  
+  # Auth Mode 2: OAuth2 (alternative)
+  # clientId: ""
+  # clientSecret: ""
+  # username: ""
+  # password: ""
+  # securityToken: ""
+  loginUrl: "https://login.salesforce.com"
+
+# Slack credentials (from K8s Secrets)
+slack:
+  # botTokenFile: "/etc/slack/bot-token"
+  # signingSecretFile: "/etc/slack/signing-secret"
+
+resources:
+  requests:
+    memory: "4Gi"
+    cpu: "2000m"
+  limits:
+    memory: "8Gi"
+    cpu: "4000m"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+ingress:
+  enabled: false
+  className: "nginx"
+  host: rag-app.example.com
+  tls:
+    enabled: false
+
+# PostgreSQL with pgvector support
+postgresql:
+  enabled: true
+  image:
+    repository: sabya610/pgvector
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  auth:
+    username: postgres
+    # password: Use secrets instead
+    database: ragdb_slack
+  
+  storage:
+    size: 100Gi
+    class: "standard"  # Change based on your cluster
+
+# Security context (non-root user)
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+# EZUA/Istio configuration (optional)
+ezua:
+  enabled: false
+  
+  # VirtualService for EZUA application endpoint
+  virtualService:
+    enabled: false
+    endpoint: "rag-app.${DOMAIN_NAME}"
+    istioGateway: "istio-system/ezaf-gateway"
+  
+  # SSO/Authorization via istio AuthorizationPolicy
+  authorizationPolicy:
+    enabled: false
+    namespace: "istio-system"
+    providerName: "oauth2-proxy"
+    matchLabels:
+      istio: "ingressgateway"
+
+# Network policies
+networkPolicy:
+  enabled: true
+  
+# Pod disruption budget (HA)
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Anti-affinity for HA deployment
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - rag-app-slack
+          topologyKey: kubernetes.io/hostname

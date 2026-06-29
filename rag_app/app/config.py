@@ -17,6 +17,8 @@ class Config:
     PDF_FOLDER = os.path.join(BASE_DIR, "pdf_kb_files")
     PGVECTOR_DIM = 384
     MAX_RESULTS = 50
+    MAX_CONTEXT_CHARS = int(os.getenv("MAX_CONTEXT_CHARS", "12000"))
+    SFDC_SEARCH_LIMIT = int(os.getenv("SFDC_SEARCH_LIMIT", "10"))
     ALLOWED_EXTENSIONS = {'pdf'}
 
     DB_USER = os.getenv('DB_USER', 'postgres')
