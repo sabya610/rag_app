@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: sabya610/rag-app
-  tag: llama3.1-8b-q4-v12
+  tag: llama3.1-8b-q4-v13
   pullPolicy: IfNotPresent
 
 # Init container image (used for wait-for-postgres)
@@ -20,7 +20,7 @@ env:
   DB_NAME: "ragdb"
   DB_USER: "postgres"
   DB_PASS: "postgres"
-  MODEL_PATH: "/app/rag_app/models/llama-2-7b-chat.Q4_K_M.gguf"
+  MODEL_PATH: "/app/rag_app/models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"
   EMBEDDING_MODEL: "/app/rag_app/models/embedding/all-MiniLM-L6-v2"
   SFDC_ENABLED: "true"
   SF_URL: "https://hp.my.salesforce.com"

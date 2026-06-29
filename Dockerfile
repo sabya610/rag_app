@@ -1,40 +1,8 @@
-# Base Python image
-FROM python:3.10-slim
+# Build on top of v9 which has Llama 3.1 model + all Python deps already installed
+FROM sabya610/rag-app:llama3.1-8b-q4-v9
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    curl \
-    git \
-    ffmpeg \
-    libsm6 \
-    libxext6 \
-    libgl1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create app directory
-WORKDIR /app
-
-# Copy requirements first (for better caching)
-COPY requirements.txt .
-#RUN pip install --no-cache-dir -r requirements.txt
-#RUN pip install --default-timeout=1000 torch==2.8.0 triton==3.4.0
-RUN pip install --default-timeout=1000 --no-cache-dir -r requirements.txt
-
-# Copy application source code
-COPY rag_app ./rag_app
-COPY .env ./rag_app
-#COPY run.py .
-#COPY templates ./templates
-#COPY __init__.py .
-
-# Copy additional resources into container
-COPY models /app/rag_app/models
-COPY postgres /app/rag_app/postgres
-COPY pdf_kb_files /app/rag_app/pdf_kb_files
-COPY helm /app/rag_app/helm
-COPY models/embedding/all-MiniLM-L6-v2 /app/rag_app/models/embedding/all-MiniLM-L6-v2
+# Override only the app code with the latest version (SFDC integration + perf fixes)
+COPY rag_app/app /app/rag_app/app
 
 
 # Set environment variables
@@ -51,5 +19,5 @@ ENV PYTHONPATH=/app/rag_app \
 # Expose Flask/Gunicorn port
 EXPOSE 5000
 
-# Run app with Gunicorn (using run.py as entrypoint)
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--timeout", "1800", "--preload","rag_app.run:app"]
+# Run app with Gunicorn — timeout 1800s for slow LLM inference, no --preload to avoid startup DB issues
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--timeout", "1800", "rag_app.run:app"]

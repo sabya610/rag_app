@@ -37,5 +37,5 @@ class Config:
     # Path to local llama model file
     MODEL_PATH = os.getenv(
         "MODEL_PATH",
-        os.path.join(BASE_DIR, "..", "models", "llama-2-7b-chat.Q4_K_M.gguf")
+        os.path.join(BASE_DIR, "..", "models", "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf")
     )
