@@ -49,10 +49,7 @@ spec:
             - name: DB_USER
               value: {{ .Values.env.DB_USER | quote }}
             - name: DB_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Release.Name }}-db-secret
-                  key: DB_PASS
+              value: {{ .Values.env.DB_PASS | quote }}
             # Models
             - name: MODEL_PATH
               value: {{ .Values.env.MODEL_PATH | quote }}
@@ -67,6 +64,10 @@ spec:
               value: {{ .Values.env.SFDC_PRODUCT_QUEUE | quote }}
             - name: SFDC_PRODUCT_LINE
               value: {{ .Values.env.SFDC_PRODUCT_LINE | quote }}
+            - name: SFDC_SEARCH_LIMIT
+              value: {{ .Values.env.SFDC_SEARCH_LIMIT | default "10" | quote }}
+            - name: MAX_CONTEXT_CHARS
+              value: {{ .Values.env.MAX_CONTEXT_CHARS | default "12000" | quote }}
             - name: SF_SID
               valueFrom:
                 secretKeyRef:
