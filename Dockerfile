@@ -1,8 +1,15 @@
-# Build on top of v9 which has Llama 3.1 model + all Python deps already installed
-FROM sabya610/rag-app:llama3.1-8b-q4-v9
+# Build on top of v14 which has Llama 3.1 + SFDC + perf fixes
+FROM sabya610/rag-app:llama3.1-8b-q4-v14
 
-# Override only the app code with the latest version (SFDC integration + perf fixes)
-COPY rag_app/app /app/rag_app/app
+# Install Slack SDK
+RUN pip install --no-cache-dir slack-sdk==3.34.0
+
+# SFDC-only mode (skip LLM) + Slack integration
+COPY rag_app/app/routes/rag_routes.py /app/rag_app/app/routes/rag_routes.py
+COPY rag_app/app/routes/slack_routes.py /app/rag_app/app/routes/slack_routes.py
+COPY rag_app/app/services/slack_service.py /app/rag_app/app/services/slack_service.py
+COPY rag_app/app/config.py /app/rag_app/app/config.py
+COPY rag_app/app/__init__.py /app/rag_app/app/__init__.py
 
 
 # Set environment variables

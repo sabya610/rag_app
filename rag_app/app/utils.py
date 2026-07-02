@@ -149,7 +149,7 @@ def clean_pdf_text(full_text):
         # If previous buffer looks unfinished, join; fix hyphenation
         if (not re.search(r'[.!?:]$', buf) and len(line) < 120) or buf.endswith('-'):
             if buf.endswith('-'):
-                # remove hyphen and don’t insert space (word continuation)
+                # remove hyphen and donΓÇÖt insert space (word continuation)
                 buf = buf[:-1] + line.lstrip()
             else:
                 buf += " " + line
@@ -362,7 +362,7 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
     results2 = db.session.execute(sql2, {
         "src": source_file,
         "query_vec": query_vec,
-        "top_k": top_k * 2
+        "top_k": top_k
     }).fetchall()
 
     chunks = [r[0] for r in results2]
@@ -457,7 +457,6 @@ def retrieve_relevant_chunks_pg(query, top_k=None):
     return final_chunks
 
 def clean_context(text):
-    from app.config import Config
     # 1. Remove exact duplicate lines
     seen, out = set(), []
     for line in text.splitlines():
@@ -472,12 +471,7 @@ def clean_context(text):
     # 3. Remove partial fenced lines like "```bash systemctl ```"
     text = re.sub(r'```bash\s*systemctl\s*```', '```bash\nsystemctl\n```', text)
     # 4. Collapse consecutive identical command blocks
-    text = re.sub(r'(```bash[\s\S]*?```)(\ s*\1)+', r'\1', text)
-    # 5. Truncate to MAX_CONTEXT_CHARS to keep LLM prompt manageable
-    max_chars = Config.MAX_CONTEXT_CHARS
-    if len(text) > max_chars:
-        text = text[:max_chars]
-        print(f"[WARN] Context truncated to {max_chars} chars")
+    text = re.sub(r'(```bash[\s\S]*?```)(\s*\1)+', r'\1', text)
     return text.strip()
 
 
@@ -491,38 +485,48 @@ def llm_answer(context_chunks, question):
     llama = current_app.llama
     #context = "".join(context_chunks)
     context = clean_context("".join(context_chunks))
+
+    # Truncate context to fit within model's context window
+    max_chars = Config.MAX_CONTEXT_CHARS
+    if len(context) > max_chars:
+        context = context[:max_chars]
+        print(f"[WARN] Context truncated to {max_chars} chars")
+
     print("Question:", question)
     print("Context retrieved:", context)
 
-    prompt = f"""
-You are a Kubernetes platform assistant for HPE Ezmeral.
+    system_prompt = """You are a helpful Kubernetes platform assistant for HPE Ezmeral. Your job is to answer questions using ONLY the context provided below.
 
-Use only CLI commands and instructions found **exactly** in the context below.
-Ensure numbered steps are consistent and not appended multiple times.
-Make sure each bash block starts and ends properly.
-Ensure the output do not have duplicated instructions.
-Do not invent commands that are not in the context.
-Provide a clear, **numbered** list of steps in order.
-Each step must be on a new line and contain any commands inside fenced ```bash code blocks.
+RULES:
+1. Answer the question based on the context. Extract and organize the relevant steps, commands, and instructions from the context.
+2. Do NOT make up, guess, or fabricate any steps or commands that are not in the context.
+3. Provide a clear, numbered list of steps. Put CLI commands inside ```bash code blocks.
+4. ONLY if the context truly contains NO relevant information at all, respond with:
+   'I don't have enough information in the knowledge base to answer this question.'"""
 
-### Context:
+    user_prompt = f"""Context:
 {context}
 
-### Question:
-{question}
+Question: {question}
 
----
-Numbered Steps:
-"""
+Using only the context above, provide a clear numbered answer:"""
 
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
 
-    out = llama(
-        prompt=prompt,
+    out = llama.create_chat_completion(
+        messages=messages,
         max_tokens=512,
-        stop=["<END>"]
+        temperature=0.2,
+        top_p=0.9,
+        repeat_penalty=1.2,
     )
 
+    usage = out.get("usage", {})
+    print(f"[TOKEN USAGE] Prompt tokens: {usage.get('prompt_tokens', 'N/A')}, "
+          f"Completion tokens: {usage.get('completion_tokens', 'N/A')}, "
+          f"Total tokens: {usage.get('total_tokens', 'N/A')}")
 
-    #pdb.set_trace()
-
-    return out["choices"][0]["text"].strip()
+    return out["choices"][0]["message"]["content"].strip()

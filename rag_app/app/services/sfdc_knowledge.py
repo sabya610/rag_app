@@ -247,7 +247,6 @@ def fetch_articles_for_query(
     """
     Search SFDC for Knowledge Articles matching user_query and fetch their full content.
     Tries SOSL first, falls back to SOQL LIKE.
-    Article bodies are fetched in parallel to reduce latency.
     """
     # Try SOSL first (full-text search)
     results = search_knowledge_articles(sf, user_query, limit=limit, product_line=product_line)
@@ -260,8 +259,8 @@ def fetch_articles_for_query(
         logger.info("[SFDC-KA] No articles found for query: %s", user_query)
         return []
 
-    # Fetch all article bodies in parallel (max 5 workers to avoid rate-limiting)
-    article_ids = [r.get("Id", "") for r in results if r.get("Id")]
+    article_ids = [r.get("Id", "") for r in results if r.get("Id", "")]
+
     articles = []
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_id = {executor.submit(fetch_article_body, sf, aid): aid for aid in article_ids}
@@ -270,8 +269,8 @@ def fetch_articles_for_query(
                 article = future.result()
                 if article and (article.get("body") or article.get("summary")):
                     articles.append(article)
-            except Exception as e:
-                logger.warning("[SFDC-KA] Failed to fetch article %s: %s", future_to_id[future], e)
+            except Exception as exc:
+                logger.error("[SFDC-KA] Failed to fetch article %s: %s", future_to_id[future], exc)
 
     # Re-rank articles by keyword relevance to the user's query
     # so the most relevant articles come first in the context

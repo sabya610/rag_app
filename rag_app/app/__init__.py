@@ -15,7 +15,7 @@ from app.utils import (
     retrieve_relevant_chunks_pg, load_embeddings_to_pg,
     llm_answer, overlapping_chunks
 )
-from app.models import KBChunk, QAHist, db
+from app.models import KBChunk, QAHist, SFDCArticle, db
 from app.config import Config
 from app.services.populate_db import populatedb
 
@@ -43,10 +43,8 @@ def load_models():
 
     llama = Llama(
         model_path=Config.MODEL_PATH,
-        n_ctx=4096,
-        temperature=0.2,   # lower temp for more extractive behavior in fallback
-        top_p=0.9,
-        repeat_penalty=1.2,
+        n_ctx=8192,
+        chat_format="llama-3",
         verbose=False,
         use_mlock=True,
         use_mmap=True,
@@ -85,8 +83,37 @@ def create_app():
         
         db.create_all()
 
+        # Migrate: add missing columns to existing tables
+        try:
+            from sqlalchemy import text, inspect
+            inspector = inspect(db.engine)
+            if "qa_history" in inspector.get_table_names():
+                existing = [c["name"] for c in inspector.get_columns("qa_history")]
+                if "source" not in existing:
+                    db.session.execute(text(
+                        "ALTER TABLE qa_history ADD COLUMN source VARCHAR DEFAULT 'pdf'"
+                    ))
+                    db.session.commit()
+                    print("[MIGRATE] Added 'source' column to qa_history table.")
+        except Exception as e:
+            print(f"[MIGRATE] Migration check skipped: {e}")
+
         #Populate DB with embeddings from PDFs.
         populatedb()
+
+        # Initialize SFDC client if configured
+        if Config.SFDC_ENABLED:
+            from app.services.sfdc_client import get_sfdc_client
+            sfdc = get_sfdc_client()
+            if sfdc:
+                app.sfdc_client = sfdc
+                print("[OK] SFDC client initialized.")
+            else:
+                app.sfdc_client = None
+                print("[WARN] SFDC credentials not configured. SFDC features disabled.")
+        else:
+            app.sfdc_client = None
+            print("[INFO] SFDC integration disabled via SFDC_ENABLED=false.")
 
         @event.listens_for(db.engine, "connect")
         def set_utf8_encoding(dbapi_connection, connection_record):
@@ -99,8 +126,9 @@ def create_app():
                 cur.close()
 
     # Register Blueprints
-
     app.register_blueprint(rag_bp)
 
+    from app.routes.slack_routes import slack_bp
+    app.register_blueprint(slack_bp)
 
     return app
